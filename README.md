@@ -1,4 +1,4 @@
-# WildWatch Elmina
+# WildWatch Elmina 
 
 Prototype for the Sime Darby Property University Hackathon 2026 (Township of Tomorrow, Planet track).
 
