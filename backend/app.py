@@ -3,7 +3,10 @@
 Run:  uvicorn backend.app:app --reload   (from the project root)
 
 Reports are saved in data/wildwatch.db (SQLite) and photos in data/uploads/.
-Setting (environment variable): ADMIN_KEY = dashboard login key (default: elmina2026)
+Settings (environment variables):
+  ADMIN_KEY      dashboard login key (default: elmina2026)
+  SHEETS_URL     optional: Google Apps Script web app link, for a permanent copy of reports
+  SHEETS_SECRET  optional: the secret written in google_sheets/Code.gs
 """
 import os
 import re
@@ -14,11 +17,11 @@ from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, File, Form, Header, HTTPException, UploadFile
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import FileResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import rules
+from . import rules, sheets
 from .classifier import classify, model_ready
 from .db import init_db, query
 
@@ -32,6 +35,37 @@ MAX_PHOTO_BYTES = 10 * 1024 * 1024
 
 app = FastAPI(title="WildWatch Elmina")
 init_db()
+
+
+def restore_from_sheet():
+    """After a restart, put live reports from the Google Sheet back, with their original IDs."""
+    rows = sheets.load_reports()
+    added = 0
+    for r in rows:
+        n = query(
+            """INSERT OR IGNORE INTO reports (id, created_at, lat, lng, animal, incident, urgency,
+               agency, status, confidence, ai_mode, photo, note, resolved_at, simulated)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,NULL,?,?,0)""",
+            (r["id"], r["created_at"], r["lat"], r["lng"], r["animal"], r["incident"], r["urgency"],
+             r["agency"], r["status"], r["confidence"], r["ai_mode"], r["note"], r["resolved_at"]),
+            fetch="none")
+        added += n or 0
+    if sheets.ENABLED:
+        print(f"[sheets] restored {added} live report(s) from the Google Sheet", flush=True)
+
+
+restore_from_sheet()
+
+
+@app.on_event("startup")
+def show_links():
+    # Clickable in the VS Code terminal: Ctrl + click to open.
+    if os.getenv("RENDER"):
+        return
+    port = os.getenv("PORT", "8000")
+    print(f"\n  WildWatch is running. Ctrl + click a link to open it:\n"
+          f"    Resident app: http://localhost:{port}/report\n"
+          f"    Dashboard:    http://localhost:{port}/dashboard\n", flush=True)
 
 
 def label(d: dict) -> dict:
@@ -97,6 +131,7 @@ def create_report(
          confidence, (ai_mode or "")[:20] or None, valid_photo_ref(photo), (note or "")[:500] or None),
         fetch="one",
     )
+    sheets.add_report(query("SELECT * FROM reports WHERE id=?", (row["id"],), fetch="one"))
     return {
         "id": row["id"],
         "animal_label": rules.ANIMAL_LABELS[animal],
@@ -149,6 +184,9 @@ def update_status(rid: int, body: StatusBody, x_admin_key: Optional[str] = Heade
               (body.status, resolved, rid), fetch="none")
     if not n:
         raise HTTPException(404, "Report not found")
+    r = query("SELECT simulated, resolved_at FROM reports WHERE id=?", (rid,), fetch="one")
+    if not r["simulated"]:
+        sheets.update_status(rid, body.status, r["resolved_at"])
     return {"ok": True}
 
 
@@ -207,10 +245,63 @@ def stats(x_admin_key: Optional[str] = Header(None)):
     }
 
 
+@app.get("/api/export.xlsx")
+def export_excel(x_admin_key: Optional[str] = Header(None)):
+    """Download every report as an Excel file (dashboard "Export to Excel" button)."""
+    require_admin(x_admin_key)
+    from io import BytesIO
+    from openpyxl import Workbook
+    from openpyxl.styles import Alignment, Font, PatternFill
+    from openpyxl.utils import get_column_letter
+
+    rows = [label(r) for r in query("SELECT * FROM reports ORDER BY created_at DESC")]
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Reports"
+    cols = [
+        ("Report ID", "id", 11), ("Date and time", "created_at", 19), ("Animal", "animal_label", 18),
+        ("Incident", "incident_label", 22), ("Urgency", "urgency", 10), ("Sent to", "agency_label", 34),
+        ("Status", "status", 13), ("Latitude", "lat", 11), ("Longitude", "lng", 12),
+        ("AI confidence", "confidence", 14), ("Resolved at", "resolved_at", 19), ("Sample data", "simulated", 12),
+    ]
+    ws.append([c[0] for c in cols])
+    for cell in ws[1]:
+        cell.font = Font(bold=True, color="FFFFFF")
+        cell.fill = PatternFill("solid", fgColor="1F4D3A")
+        cell.alignment = Alignment(vertical="center")
+    for r in rows:
+        values = []
+        for _, key, _w in cols:
+            v = r.get(key)
+            if key in ("created_at", "resolved_at") and v:
+                v = datetime.fromisoformat(v)
+            elif key == "status" and v:
+                v = v.replace("_", " ")
+            elif key == "simulated":
+                v = "Yes" if v else "No"
+            values.append(v)
+        ws.append(values)
+    for i, (_, key, width) in enumerate(cols, 1):
+        ws.column_dimensions[get_column_letter(i)].width = width
+        if key in ("created_at", "resolved_at"):
+            for (cell,) in ws.iter_rows(min_row=2, min_col=i, max_col=i):
+                cell.number_format = "yyyy-mm-dd hh:mm"
+        if key == "confidence":
+            for (cell,) in ws.iter_rows(min_row=2, min_col=i, max_col=i):
+                cell.number_format = "0%"
+    ws.freeze_panes = "A2"
+    ws.auto_filter.ref = ws.dimensions
+    buf = BytesIO()
+    wb.save(buf)
+    name = f"wildwatch-reports-{datetime.now():%Y-%m-%d-%H%M}.xlsx"
+    return Response(buf.getvalue(), media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    headers={"Content-Disposition": f'attachment; filename="{name}"'})
+
+
 @app.get("/api/health")
 def health():
     """Used by Render to check the app is up."""
-    return {"ok": True, "ai_model": model_ready()}
+    return {"ok": True, "ai_model": model_ready(), "google_sheet": sheets.ENABLED}
 
 
 # ---------- Pages ----------

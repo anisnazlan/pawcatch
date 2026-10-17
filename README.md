@@ -1,4 +1,4 @@
-# WildWatch Elmina 
+# WildWatch Elmina
 
 Prototype for the Sime Darby Property University Hackathon 2026 (Township of Tomorrow, Planet track).
 
@@ -14,6 +14,7 @@ Residents report animal sightings (monkeys, stray dogs, snakes, wild boar) from 
 | Management dashboard | `frontend/dashboard.html` | Login, heatmap with filters, KPI cards, top 5 hotspots with suggested actions, charts, case tracker, auto-refresh every 10 s |
 | Backend API | `backend/app.py` | Classify, create, track, update and list reports, stats, hotspot detection, health check |
 | Database | `backend/db.py` | Saves reports in one SQLite file, `data/wildwatch.db`; photos go in `data/uploads/` |
+| Google Sheet copy | `backend/sheets.py`, `google_sheets/Code.gs` | Optional permanent copy of live reports, reloaded after a restart |
 | Routing rules | `backend/rules.py` | Urgency, agency, safety tips and suggested actions |
 | AI classifier | `backend/classifier.py` | Runs the trained model; demo mode (resident picks the animal) until a model exists |
 | Dataset helper | `training/prepare_dataset.py` | Merges downloaded photos into the 5 class folders, cleans, de-duplicates, balances and zips them |
@@ -58,6 +59,24 @@ Your submission links:
 Every push to GitHub redeploys automatically. On the free plan the server sleeps after about 15 minutes with no visitors and takes around a minute to wake, so open the link yourself shortly before judging.
 
 **About saved data:** on Render's free plan, the server's files reset whenever it restarts (after sleeping, and on every update). Reports and photos that people submit live are cleared then, while the 450 sample reports are recreated automatically, so the dashboard is never empty. That's fine for the demo. A pilot would add a cloud database such as PostgreSQL so records are kept permanently.
+
+## 2b. Google Sheet copy (keeps live reports through restarts)
+
+Optional, about 10 minutes. Every live report is copied to a Google Sheet, status changes are copied too, and when Render restarts the app loads the reports back from the sheet, with the same report IDs. Photos are not kept (they stay on Render's temporary disk). Sample reports are not copied.
+
+1. **Create the sheet:** go to sheets.new, and name it, for example, `WildWatch reports`.
+2. **Add the script:** in the sheet, click **Extensions > Apps Script**. Delete what's in the editor, paste the whole of `google_sheets/Code.gs`, and change `change-this-secret` on the `SECRET` line to your own long random phrase. Click the **Save** icon.
+3. **Publish it:** click **Deploy > New deployment**. Click the gear next to "Select type" and choose **Web app**. Set **Execute as: Me** and **Who has access: Anyone**, then **Deploy**.
+4. **Allow access:** Google asks you to authorise it. Choose your account; if you see "Google hasn't verified this app", click **Advanced > Go to (project name) (unsafe)**, then **Allow**. This is your own script, so it's safe.
+5. **Copy the Web app URL** it shows (it ends in `/exec`).
+6. **Add it to Render:** on the service page, open **Environment** and add two variables: `SHEETS_URL` = the Web app URL, and `SHEETS_SECRET` = the same phrase you typed in step 2. Save, and Render redeploys.
+7. **Check:** open `/api/health`; it should show `"google_sheet": true`. Send a test report: within a few seconds a row appears in the sheet's **Reports** tab.
+
+Keep the Web app URL and the secret private, like a password: only put them in Render's settings, never in GitHub or the slides. If you edit `Code.gs` later, use **Deploy > Manage deployments > Edit > New version** so the same URL keeps working.
+
+To get an Excel file from the sheet: **File > Download > Microsoft Excel (.xlsx)**. Or use the dashboard's **Export to Excel** button.
+
+**Export to Excel:** the dashboard's **Export to Excel** button (top right, after signing in) downloads every report on the server, sample and live, as an `.xlsx` file with filters on each column.
 
 ## 3. Train the AI model
 

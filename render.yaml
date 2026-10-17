@@ -2,7 +2,8 @@
 # In Render: New + > Blueprint > pick this GitHub repo, then type a dashboard password.
 #
 # Reports are kept in a small file on the server. On the free plan that file resets
-# when the server restarts; the start command recreates the 450 sample reports.
+# when the server restarts; the start command recreates the 450 sample reports, and
+# live reports are reloaded from the Google Sheet when SHEETS_URL is set.
 services:
   - type: web
     name: wildwatch-elmina
@@ -19,3 +20,7 @@ services:
         value: Asia/Kuala_Lumpur
       - key: ADMIN_KEY
         sync: false      # the dashboard password you choose
+      - key: SHEETS_URL
+        sync: false      # optional: Google Apps Script web app link (README, "Google Sheet copy")
+      - key: SHEETS_SECRET
+        sync: false      # optional: the SECRET written in google_sheets/Code.gs

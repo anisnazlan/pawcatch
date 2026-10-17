@@ -46,9 +46,14 @@
 </style>
 </head>
 <body>
+<div id="noServer" style="display:none;background:#fdf1e6;color:#7a3a10;border-bottom:1px solid #f0c9a6;padding:12px 16px;font:14px/1.5 system-ui,sans-serif">
+  <b>This page needs the WildWatch server.</b> Opening the file directly won't work. In a terminal in the project folder, run
+  <code>uvicorn backend.app:app --reload</code>, then open <b>http://localhost:8000/report</b> or <b>http://localhost:8000/dashboard</b>.
+</div>
+<script>if (location.protocol === "file:") document.getElementById("noServer").style.display = "block";</script>
 <header>
   <div><h1>WildWatch Elmina · Township management</h1><div class="sub">Animal sightings, routing and hotspots</div></div>
-  <span class="live" id="live">Connecting...</span>
+  <div style="display:flex;gap:10px;align-items:center"><a href="/report" target="_blank" style="color:#fff;font-size:12px;opacity:.85">Open resident app</a><button id="exportBtn" class="hidden" onclick="exportExcel()" style="background:#fff;color:var(--forest);border:0;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer">Export to Excel</button><span class="live" id="live">Connecting...</span></div>
 </header>
 
 <div id="login" class="card">
@@ -122,12 +127,17 @@ async function api(path, opts = {}) {
 }
 async function login() {
   const k = key.value.trim();
-  const res = await fetch("/api/login", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({key:k})});
+  let res;
+  try {
+    res = await fetch("/api/login", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({key:k})});
+  } catch {
+    return loginErr.textContent = "Can't reach the server. Start it with: uvicorn backend.app:app --reload, then open http://localhost:8000/dashboard";
+  }
   if (!res.ok) return loginErr.textContent = "Wrong admin key.";
   KEY = k; try { sessionStorage.setItem("wwKey", k); } catch {}
   start();
 }
-function logout() { KEY = null; try { sessionStorage.removeItem("wwKey"); } catch {} document.getElementById("login").classList.remove("hidden"); app.classList.add("hidden"); }
+function logout() { document.getElementById("exportBtn").classList.add("hidden"); KEY = null; try { sessionStorage.removeItem("wwKey"); } catch {} document.getElementById("login").classList.remove("hidden"); app.classList.add("hidden"); }
 
 function initMap() {
   map = L.map("map").setView([3.18, 101.493], 14);
@@ -218,9 +228,25 @@ async function refresh() {
   } catch (e) { if (e.message !== "auth") live.textContent = "Connection lost, retrying..."; }
 }
 
+async function exportExcel() {
+  const btn = document.getElementById("exportBtn"), label = btn.textContent;
+  btn.disabled = true; btn.textContent = "Preparing...";
+  try {
+    const res = await fetch("/api/export.xlsx", {headers: {"X-Admin-Key": KEY}});
+    if (res.status === 401) return logout();
+    if (!res.ok) throw new Error();
+    const name = (res.headers.get("Content-Disposition") || "").match(/filename="(.+)"/)?.[1] || "wildwatch-reports.xlsx";
+    const url = URL.createObjectURL(await res.blob());
+    const a = document.createElement("a"); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  } catch { alert("Couldn't create the Excel file. Please try again."); }
+  finally { btn.disabled = false; btn.textContent = label; }
+}
+
 let timer = null;
 function start() {
   document.getElementById("login").classList.add("hidden"); app.classList.remove("hidden");
+  document.getElementById("exportBtn").classList.remove("hidden");
   if (!map) initMap(); setTimeout(() => map.invalidateSize(), 50);
   refresh(); clearInterval(timer); timer = setInterval(refresh, 10000);
 }
