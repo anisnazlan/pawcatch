@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WildWatch Elmina · Management</title>
+<link rel="stylesheet" href="/static/vendor/leaflet.css">
+<style>
+  :root { --forest:#1f4d3a; --leaf:#2f7a57; --mint:#e8f3ec; --ink:#1c2420; --muted:#5d6b64;
+          --line:#d8e2dc; --bg:#f3f6f2; --danger:#b3261e; --warn:#b4541a; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,-apple-system,"Segoe UI",sans-serif; background:var(--bg); color:var(--ink); }
+  header { background:var(--forest); color:#fff; padding:14px 20px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  header h1 { margin:0; font-size:18px; font-weight:600; }
+  header .sub { font-size:12px; opacity:.8; }
+  .live { font-size:12px; background:rgba(255,255,255,.12); padding:4px 10px; border-radius:999px; }
+  main { padding:16px 20px 40px; max-width:1300px; margin:0 auto; }
+  .grid4 { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:14px; }
+  .grid2 { display:grid; grid-template-columns:2fr 1fr; gap:14px; margin-bottom:14px; }
+  .grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:14px; }
+  @media (max-width:900px) { .grid4 { grid-template-columns:repeat(2,1fr); } .grid2, .grid3 { grid-template-columns:1fr; } }
+  .card { background:#fff; border:1px solid var(--line); border-radius:14px; padding:16px; min-width:0; }
+  .card h2 { margin:0 0 10px; font-size:14px; font-weight:600; }
+  .kpi .v { font-size:28px; font-weight:600; margin-top:4px; }
+  .kpi .l { font-size:12px; color:var(--muted); }
+  #map { height:420px; border-radius:10px; }
+  .filters { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+  select, input { padding:7px 10px; border:1px solid var(--line); border-radius:8px; font-size:13px; background:#fff; }
+  .hs { border-top:1px solid var(--line); padding:10px 0; cursor:pointer; }
+  .hs:first-of-type { border-top:0; padding-top:0; }
+  .hs .t { font-weight:600; font-size:14px; } .hs .m { font-size:12px; color:var(--muted); margin:2px 0 6px; }
+  .hs .s { font-size:13px; background:var(--mint); color:var(--forest); padding:7px 9px; border-radius:8px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th { text-align:left; color:var(--muted); font-weight:500; padding:8px 6px; border-bottom:1px solid var(--line); }
+  td { padding:8px 6px; border-bottom:1px solid #eef2ef; }
+  .tablewrap { overflow-x:auto; max-height:380px; overflow-y:auto; }
+  .badge { display:inline-block; border-radius:6px; padding:2px 8px; font-size:11px; font-weight:600; }
+  .u-high { background:#fbe3e1; color:var(--danger); } .u-medium { background:#fdf1e6; color:var(--warn); } .u-low { background:var(--mint); color:var(--forest); }
+  .sim { font-size:11px; color:var(--muted); }
+  #login { max-width:360px; margin:12vh auto; }
+  .btn { border:0; border-radius:10px; padding:11px 16px; font-size:15px; font-weight:600; background:var(--leaf); color:#fff; cursor:pointer; width:100%; margin-top:10px; }
+  .err { color:var(--danger); font-size:13px; margin-top:8px; min-height:1em; }
+  .note { font-size:12px; color:var(--muted); margin-top:6px; }
+  .hidden { display:none; }
+  .chartbox { position:relative; height:220px; }
+</style>
+</head>
+<body>
+<header>
+  <div><h1>WildWatch Elmina · Township management</h1><div class="sub">Animal sightings, routing and hotspots</div></div>
+  <span class="live" id="live">Connecting...</span>
+</header>
+
+<div id="login" class="card">
+  <h2>Management login</h2>
+  <input type="password" id="key" placeholder="Admin key" style="width:100%;padding:11px;font-size:15px">
+  <button class="btn" onclick="login()">Sign in</button>
+  <div class="err" id="loginErr"></div>
+  <div class="note">Demo key is set by ADMIN_KEY on the server (default: elmina2026).</div>
+</div>
+
+<main id="app" class="hidden">
+  <div class="grid4">
+    <div class="card kpi"><div class="l">Total reports</div><div class="v" id="kTotal">-</div></div>
+    <div class="card kpi"><div class="l">This month</div><div class="v" id="kMonth">-</div></div>
+    <div class="card kpi"><div class="l">Open urgent cases</div><div class="v" id="kUrgent" style="color:var(--danger)">-</div></div>
+    <div class="card kpi"><div class="l">Avg time to resolve</div><div class="v" id="kRes">-</div></div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <div class="filters">
+        <select id="fAnimal"><option value="">All animals</option></select>
+        <select id="fIncident"><option value="">All incidents</option></select>
+        <select id="fRange"><option value="30">Last 30 days</option><option value="90">Last 90 days</option><option value="365" selected>All time</option></select>
+      </div>
+      <div id="map"></div>
+      <div class="note" id="mapNote"></div>
+    </div>
+    <div class="card">
+      <h2>Top hotspots and suggested action</h2>
+      <div id="hotspots"></div>
+    </div>
+  </div>
+
+  <div class="grid3">
+    <div class="card"><h2>Reports by hour of day</h2><div class="chartbox"><canvas id="cHour"></canvas></div></div>
+    <div class="card"><h2>Reports by animal</h2><div class="chartbox"><canvas id="cAnimal"></canvas></div></div>
+    <div class="card"><h2>Monthly trend</h2><div class="chartbox"><canvas id="cMonth"></canvas></div></div>
+  </div>
+
+  <div class="card">
+    <h2>Case tracker · open reports</h2>
+    <div class="tablewrap"><table>
+      <thead><tr><th>ID</th><th>Time</th><th>Animal</th><th>Incident</th><th>Urgency</th><th>Agency</th><th>Status</th></tr></thead>
+      <tbody id="cases"></tbody>
+    </table></div>
+  </div>
+</main>
+
+<script src="/static/vendor/leaflet.js"></script>
+<script src="/static/vendor/leaflet-heat.js"></script>
+<script src="/static/vendor/chart.umd.js"></script>
+<script>
+const ANIMALS = {monkey:"Monkey", dog:"Stray dog", snake:"Snake", wild_boar:"Wild boar", other:"Other"};
+const INCIDENTS = {sighting:"Sighting", bins:"Rummaging bins", entered_home:"Entered home", damage:"Damage", attack:"Attack or bite"};
+const STATUSES = ["received","assigned","in_progress","resolved"];
+const COLORS = {monkey:"#c07a1e", dog:"#2f6fb0", snake:"#2f7a57", wild_boar:"#8a4f9e", other:"#7a8580"};
+let KEY = null, reports = [], map, heat, newLayer, hsLayer, charts = {}, lastMaxId = 0;
+
+try { KEY = sessionStorage.getItem("wwKey"); } catch {}
+for (const [k, v] of Object.entries(ANIMALS)) fAnimal.add(new Option(v, k));
+for (const [k, v] of Object.entries(INCIDENTS)) fIncident.add(new Option(v, k));
+[fAnimal, fIncident, fRange].forEach(el => el.onchange = render);
+key.onkeydown = e => { if (e.key === "Enter") login(); };
+
+async function api(path, opts = {}) {
+  const res = await fetch(path, {...opts, headers: {...(opts.headers || {}), "X-Admin-Key": KEY, "Content-Type": "application/json"}});
+  if (res.status === 401) { logout(); throw new Error("auth"); }
+  if (!res.ok) throw new Error("Request failed");
+  return res.json();
+}
+async function login() {
+  const k = key.value.trim();
+  const res = await fetch("/api/login", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({key:k})});
+  if (!res.ok) return loginErr.textContent = "Wrong admin key.";
+  KEY = k; try { sessionStorage.setItem("wwKey", k); } catch {}
+  start();
+}
+function logout() { KEY = null; try { sessionStorage.removeItem("wwKey"); } catch {} document.getElementById("login").classList.remove("hidden"); app.classList.add("hidden"); }
+
+function initMap() {
+  map = L.map("map").setView([3.18, 101.493], 14);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom:19, attribution:"&copy; OpenStreetMap"}).addTo(map);
+  heat = L.heatLayer([], {radius:22, blur:18, maxZoom:16}).addTo(map);
+  hsLayer = L.layerGroup().addTo(map);
+  newLayer = L.layerGroup().addTo(map);
+}
+
+function filtered() {
+  const cutoff = Date.now() - Number(fRange.value) * 86400000;
+  return reports.filter(r => (!fAnimal.value || r.animal === fAnimal.value)
+    && (!fIncident.value || r.incident === fIncident.value)
+    && new Date(r.created_at).getTime() >= cutoff);
+}
+
+function chart(id, cfg) {
+  cfg.options = {...cfg.options, responsive:true, maintainAspectRatio:false};
+  const c = charts[id];
+  if (c && c.config.type === cfg.type) { c.data = cfg.data; c.options = cfg.options; c.update("none"); return; }
+  if (c) c.destroy();
+  charts[id] = new Chart(document.getElementById(id), cfg);
+}
+
+function render() {
+  const rows = filtered();
+  heat.setLatLngs(rows.map(r => [r.lat, r.lng, r.urgency === "high" ? 1 : 0.6]));
+  newLayer.clearLayers();
+  rows.filter(r => !r.simulated).forEach(r => {
+    L.circleMarker([r.lat, r.lng], {radius:8, color:"#fff", weight:2, fillColor:COLORS[r.animal], fillOpacity:1})
+      .bindPopup("<b>#" + r.id + " " + r.animal_label + "</b><br>" + r.incident_label + "<br>" + r.agency_label +
+        (r.photo ? "<br><img src='" + (r.photo.startsWith("http") ? r.photo : "/uploads/" + r.photo) + "' style='width:160px;margin-top:6px;border-radius:6px'>" : ""))
+      .addTo(newLayer);
+  });
+  const real = reports.filter(r => !r.simulated).length;
+  mapNote.textContent = rows.length + " reports shown · " + (reports.length - real) + " simulated, " + real + " submitted live (dots).";
+
+  const byHour = Array(24).fill(0), byAnimal = {}, byMonth = {};
+  rows.forEach(r => {
+    const d = new Date(r.created_at);
+    byHour[d.getHours()]++;
+    byAnimal[r.animal] = (byAnimal[r.animal] || 0) + 1;
+    const m = d.toISOString().slice(0, 7); byMonth[m] = (byMonth[m] || 0) + 1;
+  });
+  const opt = {plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true, ticks:{precision:0}}}, animation:false};
+  chart("cHour", {type:"bar", data:{labels:byHour.map((_, h) => h), datasets:[{data:byHour, backgroundColor:"#2f7a57", borderRadius:3}]}, options:opt});
+  const ak = Object.keys(byAnimal).sort((a, b) => byAnimal[b] - byAnimal[a]);
+  chart("cAnimal", {type:"bar", data:{labels:ak.map(k => ANIMALS[k]), datasets:[{data:ak.map(k => byAnimal[k]), backgroundColor:ak.map(k => COLORS[k]), borderRadius:3}]},
+    options:{...opt, indexAxis:"y", scales:{x:{beginAtZero:true, ticks:{precision:0}}}}});
+  const mk = Object.keys(byMonth).sort().slice(-6);
+  const thisMonth = new Date().toISOString().slice(0, 7);
+  chart("cMonth", {type:"line", data:{labels:mk.map(k => k === thisMonth ? k + " (to date)" : k), datasets:[{data:mk.map(k => byMonth[k]), borderColor:"#1f4d3a", backgroundColor:"#1f4d3a", tension:.3}]}, options:opt});
+
+  const open = reports.filter(r => r.status !== "resolved").slice(0, 100);
+  cases.innerHTML = open.map(r => "<tr><td>#" + r.id + (r.simulated ? " <span class='sim'>sim</span>" : "") + "</td><td>" +
+    new Date(r.created_at).toLocaleString([], {dateStyle:"short", timeStyle:"short"}) + "</td><td>" + r.animal_label +
+    "</td><td>" + r.incident_label + "</td><td><span class='badge u-" + r.urgency + "'>" + r.urgency + "</span></td><td>" +
+    r.agency_label + "</td><td><select data-id='" + r.id + "'>" +
+    STATUSES.map(s => "<option" + (s === r.status ? " selected" : "") + " value='" + s + "'>" + s.replace("_", " ") + "</option>").join("") +
+    "</select></td></tr>").join("") || "<tr><td colspan='7' class='sim'>No open cases.</td></tr>";
+  cases.querySelectorAll("select").forEach(s => s.onchange = async () => {
+    await api("/api/reports/" + s.dataset.id, {method:"PATCH", body:JSON.stringify({status:s.value})});
+    refresh();
+  });
+}
+
+function renderStats(s) {
+  kTotal.textContent = s.total; kMonth.textContent = s.this_month; kUrgent.textContent = s.urgent_open;
+  kRes.textContent = s.avg_resolution_hours === null ? "-" : s.avg_resolution_hours + " h";
+  hsLayer.clearLayers();
+  hotspots.innerHTML = s.hotspots.map((h, i) => {
+    L.circle([h.lat, h.lng], {radius:120, color:"#b3261e", weight:1.5, fill:false, dashArray:"4 4"})
+      .bindTooltip("Hotspot " + (i + 1)).addTo(hsLayer);
+    return "<div class='hs' onclick='map.setView([" + h.lat + "," + h.lng + "],17)'><div class='t'>" + (i + 1) + ". " + h.animal_label +
+      " · " + h.count + " reports</div><div class='m'>Mostly " + h.incident_label.toLowerCase() + ", peak " + h.period +
+      "</div><div class='s'>" + h.suggestion + "</div></div>";
+  }).join("");
+}
+
+async function refresh() {
+  try {
+    const [rows, s] = await Promise.all([api("/api/reports"), api("/api/stats")]);
+    reports = rows; render(); renderStats(s);
+    const maxId = Math.max(0, ...rows.map(r => r.id));
+    if (lastMaxId && maxId > lastMaxId) live.textContent = "New report #" + maxId + " received";
+    else live.textContent = "Live · updated " + new Date().toLocaleTimeString([], {timeStyle:"short"}) + (s.model_ready ? "" : " · AI demo mode");
+    lastMaxId = maxId;
+  } catch (e) { if (e.message !== "auth") live.textContent = "Connection lost, retrying..."; }
+}
+
+let timer = null;
+function start() {
+  document.getElementById("login").classList.add("hidden"); app.classList.remove("hidden");
+  if (!map) initMap(); setTimeout(() => map.invalidateSize(), 50);
+  refresh(); clearInterval(timer); timer = setInterval(refresh, 10000);
+}
+if (KEY) start();
+</script>
+</body>
+</html>

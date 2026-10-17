@@ -1,0 +1,12 @@
+data/wildwatch.db
+data/uploads/*
+!data/uploads/.gitkeep
+__pycache__/
+dataset/
+.env
+# Commit model/animal_model.tflite and model/labels.json; skip the large files
+model/animal_model.keras
+model/confusion_matrix.png
+model/report.txt
+dataset.zip
+wildwatch_model.zip

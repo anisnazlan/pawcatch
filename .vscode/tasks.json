@@ -1,0 +1,20 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Prepare sample data",
+      "type": "shell",
+      "command": "python -m backend.generate_data --if-empty",
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "silent" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Reset sample data",
+      "type": "shell",
+      "command": "python -m backend.generate_data --reset",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    }
+  ]
+}

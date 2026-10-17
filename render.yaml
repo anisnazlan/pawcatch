@@ -1,0 +1,21 @@
+# Render blueprint: Render reads this file and sets up the web service for you.
+# In Render: New + > Blueprint > pick this GitHub repo, then type a dashboard password.
+#
+# Reports are kept in a small file on the server. On the free plan that file resets
+# when the server restarts; the start command recreates the 450 sample reports.
+services:
+  - type: web
+    name: wildwatch-elmina
+    runtime: python
+    plan: free
+    region: singapore
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m backend.generate_data --if-empty && uvicorn backend.app:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: TZ          # report times in Malaysian time, not UTC
+        value: Asia/Kuala_Lumpur
+      - key: ADMIN_KEY
+        sync: false      # the dashboard password you choose

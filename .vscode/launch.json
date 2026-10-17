@@ -1,0 +1,36 @@
+{
+  // Press F5 (or Run > Start Debugging) to start WildWatch and open the dashboard.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Start WildWatch (dashboard)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "uvicorn",
+      "args": ["backend.app:app", "--reload"],
+      "cwd": "${workspaceFolder}",
+      "preLaunchTask": "Prepare sample data",
+      "justMyCode": true,
+      "serverReadyAction": {
+        "pattern": "Uvicorn running on (https?://\\S+)",
+        "uriFormat": "%s/dashboard",
+        "action": "openExternally"
+      }
+    },
+    {
+      "name": "Start WildWatch (resident app)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "uvicorn",
+      "args": ["backend.app:app", "--reload"],
+      "cwd": "${workspaceFolder}",
+      "preLaunchTask": "Prepare sample data",
+      "justMyCode": true,
+      "serverReadyAction": {
+        "pattern": "Uvicorn running on (https?://\\S+)",
+        "uriFormat": "%s/report",
+        "action": "openExternally"
+      }
+    }
+  ]
+}

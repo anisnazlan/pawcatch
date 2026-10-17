@@ -1,0 +1,9 @@
+# Server (what Render installs). Training needs training/requirements.txt instead.
+fastapi>=0.110
+uvicorn>=0.29
+python-multipart>=0.0.9
+pillow>=10.0
+numpy>=1.26
+# Small AI runtime for the .tflite model. Linux/Mac only; on Windows the app runs
+# in demo mode unless you install tensorflow.
+ai-edge-litert>=1.0; sys_platform != "win32"
