@@ -1,8 +1,8 @@
-# WildWatch Elmina_
+# WildWatch Elmina
 
 Prototype for the Sime Darby Property University Hackathon 2026 (Township of Tomorrow, Planet track).
 
-Residents report animal sightings (monkeys, stray dogs, snakes, wild boar) from their phone. AI identifies the animal, the system routes the report to the right party (PERHILITAN, MBSA or township management) and gives safety tips. Township management sees every report on a hotspot dashboard and gets suggested preventive actions.
+Residents report animal sightings (monkeys, stray dogs, snakes, wild boar, monitor lizards) from their phone. AI identifies the animal, the system routes the report to the right party (PERHILITAN, MBSA or township management) and gives safety tips. Township management sees every report on a hotspot dashboard and gets suggested preventive actions.
 
 **Stack:** FastAPI (Python) · SQLite (built-in, no setup) · MobileNetV2 image classifier (TFLite) · Leaflet + Chart.js · installable PWA · hosted on Render.
 
@@ -17,7 +17,7 @@ Residents report animal sightings (monkeys, stray dogs, snakes, wild boar) from 
 | Google Sheet copy | `backend/sheets.py`, `google_sheets/Code.gs` | Optional permanent copy of live reports, reloaded after a restart |
 | Routing rules | `backend/rules.py` | Urgency, agency, safety tips and suggested actions |
 | AI classifier | `backend/classifier.py` | Runs the trained model; demo mode (resident picks the animal) until a model exists |
-| Dataset helper | `training/prepare_dataset.py` | Merges downloaded photos into the 5 class folders, cleans, de-duplicates, balances and zips them |
+| Dataset helper | `training/prepare_dataset.py` | Merges downloaded photos into the 6 class folders, cleans, de-duplicates, balances and zips them |
 | Training notebook | `training/WildWatch_training.ipynb` | Step-by-step Google Colab notebook: upload, train, check results, test a photo, download |
 | Model training | `training/train.py` | MobileNetV2 transfer learning; saves the model, a TFLite copy, accuracy report and confusion matrix |
 | Simulated data | `backend/generate_data.py` | 450 simulated reports around City of Elmina with built-in hotspot patterns |
@@ -82,37 +82,34 @@ To get an Excel file from the sheet: **File > Download > Microsoft Excel (.xlsx)
 
 ### a. Download the photos
 
-| Class | Source | Folder to use after unzipping |
+| Dataset (Kaggle) | What we use | Folder after unzipping |
 |---|---|---|
-| `other` | Kaggle: Animal Image Dataset (90 different animals) | the `cat`, `squirrel`, `lizard`, `rat`, `crow`, `pigeon` folders |
-| `wild_boar` | same 90-animals dataset, plus iNaturalist (below) | the `boar` folder |
-| `dog` | Kaggle: Animals-10 | `raw-img/cane` (folder names are in Italian; *cane* = dog) |
-| `snake` | Kaggle: a snake image dataset | the folder with the snake photos |
-| `monkey` | iNaturalist: Long-tailed Macaque (below) | export CSV |
+| **Wildlife_detetion_yolo_74_class** (YOLO format) | monkey, dog, wild_boar, the 3 rattlesnake classes (→ snake), and cat, squirrel, crow, chicken, sparrow, mongoose, rabbit, duck (→ other). "Wild Dog" is left out on purpose. | `downloads/wildlife74` (the folder with `data.yaml`) |
+| A **cats, dogs and snakes** image classification dataset (about 1,000 photos each) | only the dogs and snakes, for more dogs and more varied snakes | `downloads/catdogsnake` |
+| **iNaturalist**: Asian water monitor (*Varanus salvator*), Malaysia | monitor lizard (biawak) | export CSV saved as `downloads/inat_biawak.csv` |
+| **iNaturalist**: Common house gecko (*Hemidactylus frenatus*), Malaysia | cicak, added to `other` so the AI learns a house lizard isn't a case | export CSV saved as `downloads/inat_cicak.csv` |
 
-Check each dataset's licence on its Kaggle page, and look inside each folder after unzipping, since paths can differ slightly.
+**iNaturalist export:** sign in at inaturalist.org, open the observation export page (Explore, then Download), and filter by species name, place **Malaysia**, **Research Grade**, **has photos**, and photo licences CC0, CC-BY, CC-BY-NC if offered. Keep the **image_url** column ticked, export, and save the CSV with the name above. The script downloads the photos the first time (a few minutes) and reuses them on later runs.
 
-**iNaturalist (for monkey and wild boar):**
-1. Sign in at inaturalist.org, open **Explore**, and search the species: *Long-tailed Macaque* (and separately *Wild Boar*).
-2. Filter to **Research Grade** observations with photos. If the filter offers photo licences, choose CC0, CC-BY and CC-BY-NC, which allow reuse.
-3. Use **Download** (the observations export page), keep the **image_url** column ticked, and export the CSV. Save it as `inat_macaque.csv` (or `inat_boar.csv`).
+Put both under a `downloads/` folder in the project. `downloads/` is in `.gitignore`, so the photos are never uploaded to GitHub. Check each dataset's licence on its Kaggle page.
 
 ### b. Build the dataset with the helper script
 
-```bash
+```bat
 pip install pillow
 python training/prepare_dataset.py ^
-  --add other downloads/animals90/cat --add other downloads/animals90/squirrel ^
-  --add other downloads/animals90/lizard --add other downloads/animals90/rat ^
-  --add wild_boar downloads/animals90/boar ^
-  --add dog downloads/animals10/raw-img/cane ^
-  --add snake downloads/snakes ^
-  --inat monkey downloads/inat_macaque.csv --inat wild_boar downloads/inat_boar.csv ^
-  --max 300 --zip
+  --yolo downloads/wildlife74 ^
+  --add dog downloads/catdogsnake/dogs ^
+  --add snake downloads/catdogsnake/snakes ^
+  --inat monitor_lizard downloads/inat_biawak.csv ^
+  --inat other downloads/inat_cicak.csv ^
+  --max 250 --zip
 ```
-(On Windows Command Prompt, `^` continues a line; on Mac or Colab use `\`. Replace the paths with where you unzipped each download.)
+(On Windows Command Prompt, `^` continues a line; on Mac or Colab use `\`. Change the dogs/snakes paths if the folders are named differently after unzipping.)
 
-The script copies photos into `dataset/monkey`, `dog`, `snake`, `wild_boar` and `other`, converts formats to JPG, skips broken and tiny images, removes duplicates (including resized copies and the same photo in two classes), shrinks large photos, keeps at most 300 per class, downloads the iNaturalist photos, and creates `dataset.zip`. The summary at the end shows how many photos each class got. Then **open the folders and delete any obviously wrong photo** (a cartoon, a person, the wrong animal).
+For the YOLO dataset the script reads `data.yaml`, cuts out every boxed animal (with a little space around it), and sorts it into our 6 classes using `YOLO_MAP` at the top of the script. Then, for every source, it converts to JPG, skips broken and tiny crops, removes duplicates (including the same photo in two classes), shrinks large photos, and keeps at most 250 per class, **taking an equal share from each source** (so `other` gets a mix of all 8 animals plus cicak). It creates `dataset.zip`, and the summary shows how many photos each class got and where they came from. Then **open the folders and delete any obviously wrong photo** (a blank crop, a person, the wrong animal) and run `python training/prepare_dataset.py --zip-only` to remake the zip. Don't run the full command again: it rebuilds the folders and the deleted photos come back.
+
+Need more photos of one animal later (for example local macaques from Roboflow or iNaturalist)? Add another `--add CLASS FOLDER` or `--inat CLASS CSV` line; see `python training/prepare_dataset.py --help`.
 
 ### c. Train on Google Colab
 

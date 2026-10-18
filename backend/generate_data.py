@@ -28,8 +28,11 @@ HOTSPOTS = [
      {"dog": 0.85, "monkey": 0.15},
      {"sighting": 0.55, "attack": 0.15, "entered_home": 0.3}, [17, 18, 19, 20]),
     ("Drain and grass strip", 3.1880, 101.4920, 0.0010, 0.12,
-     {"snake": 0.75, "other": 0.25},
+     {"snake": 0.55, "monitor_lizard": 0.3, "other": 0.15},
      {"sighting": 0.5, "entered_home": 0.5}, [10, 11, 15, 21]),
+    ("Lake and monsoon drain", 3.1745, 101.4880, 0.0009, 0.08,
+     {"monitor_lizard": 0.7, "snake": 0.2, "other": 0.1},
+     {"sighting": 0.5, "entered_home": 0.3, "damage": 0.2}, [9, 10, 11, 16, 17]),
     ("Commercial area", 3.1790, 101.5080, 0.0011, 0.10,
      {"dog": 0.7, "monkey": 0.3},
      {"bins": 0.6, "sighting": 0.4}, [21, 22, 23, 6]),
@@ -57,7 +60,7 @@ def main(n: int, reset: bool, if_empty: bool, seed: int):
             hour = random.choice(hours) if random.random() < 0.75 else random.randint(0, 23)
         else:
             lat0, lng0, spread = BACKGROUND
-            animals = {"monkey": 0.3, "dog": 0.35, "snake": 0.15, "wild_boar": 0.05, "other": 0.15}
+            animals = {"monkey": 0.3, "dog": 0.33, "snake": 0.13, "wild_boar": 0.05, "monitor_lizard": 0.07, "other": 0.12}
             incidents = {"sighting": 0.6, "bins": 0.2, "entered_home": 0.15, "attack": 0.05}
             hour = random.randint(0, 23)
         lat = random.gauss(lat0, spread)

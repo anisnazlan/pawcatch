@@ -1,6 +1,6 @@
 """Urgency, routing and safety-tip rules for each report."""
 
-ANIMALS = ["monkey", "dog", "snake", "wild_boar", "other"]
+ANIMALS = ["monkey", "dog", "snake", "wild_boar", "monitor_lizard", "other"]
 INCIDENTS = ["sighting", "bins", "entered_home", "damage", "attack"]
 
 ANIMAL_LABELS = {
@@ -8,6 +8,7 @@ ANIMAL_LABELS = {
     "dog": "Stray dog",
     "snake": "Snake",
     "wild_boar": "Wild boar",
+    "monitor_lizard": "Monitor lizard (biawak)",
     "other": "Other animal",
 }
 
@@ -47,6 +48,11 @@ TIPS = {
         "Do not corner or chase it.",
         "Keep food waste sealed overnight.",
     ],
+    "monitor_lizard": [
+        "Keep at least 2 metres away. Do not corner it, it can whip its tail and bite.",
+        "Keep children, pets and chickens away, and close doors so it can leave on its own.",
+        "Do not try to catch it. Watch where it goes so responders can find it.",
+    ],
     "other": [
         "Keep a safe distance and do not touch the animal.",
         "Keep children and pets indoors.",
@@ -59,18 +65,19 @@ def urgency_for(animal: str, incident: str) -> str:
         return "high"
     if animal == "snake" and incident in ("entered_home", "damage"):
         return "high"
-    if incident in ("entered_home", "damage") or animal in ("snake", "wild_boar"):
+    if incident in ("entered_home", "damage") or animal in ("snake", "wild_boar", "monitor_lizard"):
         return "medium"
     return "low"
 
 
 def agency_for(animal: str, incident: str) -> str:
-    if animal == "snake" and incident in ("entered_home", "attack"):
+    if animal in ("snake", "monitor_lizard") and incident in ("entered_home", "attack"):
+        # Bomba removes snakes and monitor lizards from homes.
         return "emergency"
-    if incident == "bins" and animal in ("monkey", "dog", "wild_boar", "other"):
+    if incident == "bins" and animal in ("monkey", "dog", "wild_boar", "monitor_lizard", "other"):
         # The cause is waste management, which township management can fix.
         return "township"
-    if animal in ("monkey", "snake", "wild_boar"):
+    if animal in ("monkey", "snake", "wild_boar", "monitor_lizard"):
         return "perhilitan"
     if animal == "dog":
         return "council"
@@ -88,6 +95,8 @@ def suggestion_for(animal: str, incident: str, period: str) -> str:
         return "Seal food waste overnight and inspect the fence line at the forest edge."
     if animal == "snake":
         return "Clear overgrown grass and drains, and brief residents on snake safety."
+    if animal == "monitor_lizard":
+        return "Cover drains and pond edges, and remind residents to secure chicken coops, pet food and waste."
     return "Inspect the area and brief residents."
 
 

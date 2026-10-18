@@ -107,10 +107,10 @@
 <script src="/static/vendor/leaflet-heat.js"></script>
 <script src="/static/vendor/chart.umd.js"></script>
 <script>
-const ANIMALS = {monkey:"Monkey", dog:"Stray dog", snake:"Snake", wild_boar:"Wild boar", other:"Other"};
+const ANIMALS = {monkey:"Monkey", dog:"Stray dog", snake:"Snake", wild_boar:"Wild boar", monitor_lizard:"Monitor lizard", other:"Other"};
 const INCIDENTS = {sighting:"Sighting", bins:"Rummaging bins", entered_home:"Entered home", damage:"Damage", attack:"Attack or bite"};
 const STATUSES = ["received","assigned","in_progress","resolved"];
-const COLORS = {monkey:"#c07a1e", dog:"#2f6fb0", snake:"#2f7a57", wild_boar:"#8a4f9e", other:"#7a8580"};
+const COLORS = {monkey:"#c07a1e", dog:"#2f6fb0", snake:"#2f7a57", wild_boar:"#8a4f9e", monitor_lizard:"#6b7a1f", other:"#7a8580"};
 let KEY = null, reports = [], map, heat, newLayer, hsLayer, charts = {}, lastMaxId = 0;
 
 try { KEY = sessionStorage.getItem("wwKey"); } catch {}
