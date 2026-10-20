@@ -2,7 +2,7 @@
   "name": "WildWatch Elmina",
   "short_name": "WildWatch",
   "description": "Report monkeys, stray dogs, snakes and wild boar in City of Elmina.",
-  "start_url": "/report/app",
+  "start_url": "/app",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
