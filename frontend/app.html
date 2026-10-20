@@ -880,12 +880,32 @@ function renderTips(k) {
 
 /* ---------- Install as an app (PWA) ---------- */
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
-const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+// Running as the installed app (phone icon or desktop app window)?
+const standalone = ["standalone", "fullscreen", "minimal-ui", "window-controls-overlay"]
+  .some(m => matchMedia("(display-mode: " + m + ")").matches) || navigator.standalone === true;
+if (standalone) store.set("ww_installed", true);           // remember it for the browser tab too
+const hideInstall = () => $("installBar").classList.add("hidden");
+const installBlocked = () => standalone || store.get("ww_installed", false) || store.get("ww_install_off", false);
 let deferredPrompt = null;
-window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); deferredPrompt = e; if (!standalone && !store.get("ww_install_off", false)) $("installBar").classList.remove("hidden"); });
-$("installBtn").onclick = async () => { if (!deferredPrompt) return; deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; $("installBar").classList.add("hidden"); };
-$("installClose").onclick = () => { $("installBar").classList.add("hidden"); store.set("ww_install_off", true); };
-if (/iphone|ipad|ipod/i.test(navigator.userAgent) && !standalone && !store.get("ww_install_off", false)) {
+window.addEventListener("beforeinstallprompt", e => {        // Android and desktop Chrome / Edge
+  e.preventDefault(); deferredPrompt = e;
+  if (!installBlocked()) $("installBar").classList.remove("hidden");
+});
+$("installBtn").onclick = async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const choice = await deferredPrompt.userChoice; deferredPrompt = null;
+  if (choice && choice.outcome === "accepted") store.set("ww_installed", true);
+  hideInstall();
+};
+$("installClose").onclick = () => { hideInstall(); store.set("ww_install_off", true); };
+window.addEventListener("appinstalled", () => { store.set("ww_installed", true); hideInstall(); });
+// Chrome can also tell us if this app is already installed on the device.
+if (navigator.getInstalledRelatedApps) {
+  navigator.getInstalledRelatedApps().then(apps => { if (apps && apps.length) { store.set("ww_installed", true); hideInstall(); } }).catch(() => {});
+}
+if (/iphone|ipad|ipod/i.test(navigator.userAgent) && !installBlocked()) {
+  // iPhone has no install button for websites: show the Safari steps instead.
   $("installHint").textContent = "Tap Share, then “Add to Home Screen”.";
   $("installBtn").classList.add("hidden"); $("installBar").classList.remove("hidden");
 }

@@ -8,6 +8,9 @@
   "orientation": "portrait",
   "background_color": "#f6f8f5",
   "theme_color": "#1f4d3a",
+    "related_applications": [
+    { "platform": "webapp", "url": "https://wildwatch-elmina.onrender.com/manifest.webmanifest" }
+  ],
   "icons": [
     { "src": "/static/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "/static/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
