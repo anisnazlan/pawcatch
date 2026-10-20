@@ -87,7 +87,7 @@
   .sun { animation:float 4s ease-in-out infinite; transform-origin:center; }
 
   /* ---------- Home ---------- */
-  .top { display:flex; align-items:center; gap:12px; padding:calc(16px + env(safe-area-inset-top)) 20px 8px; }
+  .top { display:flex; align-items:center; gap:8px; padding:calc(16px + env(safe-area-inset-top)) 20px 8px; }
   .call-pill { height:44px; padding:0 14px; border-radius:22px; background:var(--red); color:#fff; text-decoration:none; display:flex; align-items:center; gap:6px; font-family:var(--head); font-weight:800; font-size:17px; }
   .hero { background:var(--monkey); border-radius:32px; padding:22px; position:relative; overflow:hidden; min-height:196px; }
   .hero .ring-bg { position:absolute; right:-24px; top:-20px; }
@@ -169,7 +169,7 @@
   .st-resolved { background:var(--sage); }
   .empty { text-align:center; padding:28px 16px; }
   input[type=text], input[type=number] { width:100%; height:52px; padding:0 16px; border:1.5px solid #DCD8CC; border-radius:18px; font-size:16px; font-family:inherit; background:#fff; }
-  label.lbl { font-size:14px; font-weight:700; display:block; margin-bottom:8px; }
+  .lbl { font-size:14px; font-weight:700; display:block; margin:0 0 8px; }
 
   /* ---------- Map ---------- */
   .map-box { height:calc(100dvh - 300px); min-height:340px; border-radius:28px; overflow:hidden; border:1.5px solid var(--line); }
@@ -189,19 +189,26 @@
 
   .install { display:flex; align-items:center; gap:10px; background:#fff; border:1.5px solid var(--line); border-radius:20px; padding:10px 12px; font-size:13px; }
   .noServer { background:#fdf1e6; color:#7a3a10; padding:12px 16px; font-size:14px; line-height:1.5; }
+  /* ---------- Language switch ---------- */
+  .lang-seg { display:flex; background:rgba(29,43,34,.08); border-radius:16px; padding:3px; gap:2px; }
+  .lang-seg button { border:none; background:none; padding:7px 11px; border-radius:13px; font-size:13px; font-weight:700; cursor:pointer; color:var(--forest); }
+  .lang-seg button.on { background:var(--forest); color:var(--bg); }
+  .lang-pill { height:44px; min-width:48px; padding:0 10px; border-radius:22px; border:1.5px solid #DCD8CC; background:#fff; display:flex; align-items:center; justify-content:center; gap:5px; font-size:13px; font-weight:700; cursor:pointer; flex-shrink:0; }
+  .w-head { position:absolute; top:calc(28px + env(safe-area-inset-top)); left:24px; right:20px; display:flex; align-items:center; justify-content:space-between; }
+  .em { font-style:italic; font-weight:600; color:var(--leaf); }
 </style>
 </head>
 <body>
 <div class="app" id="app">
-<div class="noServer hidden" id="noServer"><b>This page needs the WildWatch server.</b> Run the app (F5 or <code>python -m uvicorn backend.app:app --reload</code>) and open <b>http://localhost:8000/app</b>.</div>
+<div class="noServer hidden" id="noServer" data-t-html="no_server"></div>
 
 <input type="file" id="photoInput" accept="image/*" capture="environment" hidden>
 
 <!-- ======================= WELCOME (first visit only) ======================= -->
-<section class="screen no-nav" id="s-welcome" aria-label="Welcome">
+<section class="screen no-nav" id="s-welcome">
   <div class="welcome-art">
     <svg class="scene" viewBox="0 0 390 420" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-      <circle class="sun" cx="300" cy="96" r="54" fill="#F6D77A"></circle>
+      <circle class="sun" cx="300" cy="110" r="54" fill="#F6D77A"></circle>
       <path d="M0 250 C 80 170, 160 190, 230 230 S 360 200, 390 170 L 390 420 L 0 420 Z" fill="#8FC08D"></path>
       <path d="M0 300 C 90 250, 170 270, 250 300 S 360 280, 390 260 L 390 420 L 0 420 Z" fill="#5E9E6E"></path>
       <rect x="196" y="282" width="70" height="60" rx="6" fill="#F7F5EF"></rect>
@@ -219,130 +226,133 @@
       <path d="M140 252 C 160 250, 162 230, 150 222" stroke="#C98B5B" stroke-width="5" fill="none" stroke-linecap="round"></path>
       <path d="M0 360 C 100 340, 200 350, 390 330 L 390 420 L 0 420 Z" fill="#F7F5EF"></path>
     </svg>
-    <div class="logo" style="position:absolute;top:calc(28px + env(safe-area-inset-top));left:24px">
-      <div class="logo-mark"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F6D77A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="15" r="4"/><circle cx="6" cy="9" r="2"/><circle cx="10" cy="5" r="2"/><circle cx="14" cy="5" r="2"/><circle cx="18" cy="9" r="2"/></svg></div>
-      <span style="font-family:var(--head);font-weight:800;font-size:20px">WildWatch</span>
+    <div class="w-head">
+      <div class="logo">
+        <div class="logo-mark"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F6D77A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="15" r="4"/><circle cx="6" cy="9" r="2"/><circle cx="10" cy="5" r="2"/><circle cx="14" cy="5" r="2"/><circle cx="18" cy="9" r="2"/></svg></div>
+        <span style="font-family:var(--head);font-weight:800;font-size:20px">WildWatch</span>
+      </div>
+      <div class="lang-seg" role="group" aria-label="Language / Bahasa"><button data-lang="en">EN</button><button data-lang="ms">BM</button></div>
     </div>
   </div>
   <div class="pad stagger" style="display:flex;flex-direction:column;gap:16px">
-    <p class="eyebrow" style="color:var(--leaf);--i:0">City of Elmina</p>
-    <h1 style="font-weight:800;font-size:44px;line-height:1.02;letter-spacing:-1px;--i:1">Share the township, <span style="font-style:italic;font-weight:600;color:var(--leaf)">safely.</span></h1>
-    <p style="margin:0;font-size:16px;line-height:1.5;color:var(--muted);--i:2">Snap any animal you see. We’ll tell you what it is, how to stay safe, and who’s coming to help.</p>
-    <p style="margin:0;font-size:13px;color:var(--soft);--i:3">We’ll ask for your location so responders can find the animal.</p>
-    <button class="btn press" id="startBtn" style="--i:4;justify-content:space-between;padding:0 8px 0 24px">Get started<span style="width:44px;height:44px;border-radius:22px;background:var(--monkey);display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1D2B22" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></button>
-    <a class="btn-outline-red press" href="tel:999" style="--i:5"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B3271C" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg>In danger? Call 999</a>
+    <p class="eyebrow" style="color:var(--leaf)" data-t="w_city"></p>
+    <h1 style="font-weight:800;font-size:42px;line-height:1.04;letter-spacing:-1px" data-t-html="w_title"></h1>
+    <p style="margin:0;font-size:16px;line-height:1.5;color:var(--muted)" data-t="w_body"></p>
+    <p style="margin:0;font-size:13px;color:var(--soft)" data-t="w_loc"></p>
+    <button class="btn press" id="startBtn" style="justify-content:space-between;padding:0 8px 0 24px"><span data-t="w_start"></span><span style="width:44px;height:44px;border-radius:22px;background:var(--monkey);display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1D2B22" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></button>
+    <a class="btn-outline-red press" href="tel:999"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B3271C" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg><span data-t="call_danger"></span></a>
   </div>
 </section>
 
 <!-- ======================= HOME ======================= -->
-<section class="screen" id="s-home" aria-label="Home">
+<section class="screen" id="s-home">
   <div class="top">
-    <div style="width:44px;height:44px;border-radius:16px;background:var(--sage);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1D2B22" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg></div>
     <div style="flex-grow:1;display:flex;flex-direction:column;min-width:0">
-      <span id="greet" style="font-family:var(--head);font-weight:700;font-size:20px">Selamat datang</span>
-      <span style="font-size:13px;color:var(--muted)">City of Elmina · <button class="linkish" id="locStatus" style="font-size:13px;font-weight:600">Turn on location</button></span>
+      <span id="greet" style="font-family:var(--head);font-weight:700;font-size:21px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></span>
+      <span style="font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A5A51" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-1px;margin-right:3px"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/></svg><span data-t="city"></span> · <button class="linkish" id="locStatus" style="font-size:13px;font-weight:600"></button></span>
     </div>
-    <a class="call-pill press" href="tel:999" aria-label="Emergency, call 999"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg>999</a>
+    <button class="lang-pill press" id="langPill"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1D2B22" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg><span id="langPillTxt"></span></button>
+    <a class="call-pill press" href="tel:999" data-t-aria="aria_call"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg>999</a>
   </div>
 
   <div class="pad stagger" style="display:flex;flex-direction:column;gap:14px;margin-top:6px">
-    <div class="install hidden" id="installBar" style="--i:0">
+    <div class="install hidden" id="installBar">
       <img src="/static/icons/icon-192.png" alt="" width="36" height="36" style="border-radius:10px">
-      <span style="flex-grow:1" id="installHint">Add WildWatch to your home screen for one-tap reporting.</span>
-      <button class="chip on" id="installBtn" style="padding:8px 12px">Add</button>
-      <button class="round" id="installClose" aria-label="Dismiss" style="width:32px;height:32px;background:none;font-size:18px">&times;</button>
+      <span style="flex-grow:1" id="installHint"></span>
+      <button class="chip on" id="installBtn" style="padding:8px 12px" data-t="install_add"></button>
+      <button class="round" id="installClose" data-t-aria="aria_dismiss" style="width:32px;height:32px;background:none;font-size:18px">&times;</button>
     </div>
 
-    <div class="hero" style="--i:1">
+    <div class="hero">
       <svg class="ring-bg" width="150" height="150" viewBox="0 0 150 150" aria-hidden="true"><circle cx="75" cy="75" r="70" fill="#F9E3A1"/><circle cx="75" cy="75" r="44" fill="#FBEBC0"/></svg>
-      <p class="eyebrow" style="position:relative">Report in 30 seconds</p>
-      <h1>Saw an animal?</h1>
-      <p>Snap it. Our AI names it and tells you what to do.</p>
+      <p class="eyebrow" style="position:relative" data-t="hero_eyebrow"></p>
+      <h1 data-t="hero_title"></h1>
+      <p data-t="hero_body"></p>
       <div style="height:16px"></div>
-      <button class="linkish" id="noPhotoBtn">No photo? Report anyway</button>
-      <button class="cam press" id="camBtn" aria-label="Take a photo of the animal"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#F6D77A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8a2 2 0 0 1 2-2h2l1.5-2h7L17 6h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3.5"/></svg></button>
+      <button class="linkish" id="noPhotoBtn" data-t="no_photo"></button>
+      <button class="cam press" id="camBtn" data-t-aria="aria_photo"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#F6D77A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8a2 2 0 0 1 2-2h2l1.5-2h7L17 6h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3.5"/></svg></button>
     </div>
 
-    <div class="near" id="nearCard" style="--i:2">
+    <div class="near" id="nearCard">
       <div class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#D6CCF2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg></div>
       <div style="display:flex;flex-direction:column;gap:2px">
-        <span class="eyebrow" style="color:#3B2F6B">Near you this week</span>
-        <span id="nearTitle" style="font-weight:700;font-size:15px;line-height:1.3">Checking recent sightings…</span>
+        <span class="eyebrow" style="color:#3B2F6B" data-t="near_eyebrow"></span>
+        <span id="nearTitle" style="font-weight:700;font-size:15px;line-height:1.3"></span>
         <span id="nearTip" style="font-size:13px;color:#3B2F6B"></span>
       </div>
     </div>
 
-    <div style="--i:3">
-      <div class="section-head"><h2>Know your neighbours</h2><button class="linkish" data-go="tips" style="font-size:13px">All tips</button></div>
+    <div>
+      <div class="section-head"><h2 data-t="neighbours"></h2><button class="linkish" data-go="tips" style="font-size:13px" data-t="all_tips"></button></div>
       <div class="grid3" id="animalTiles"></div>
     </div>
   </div>
 </section>
 
 <!-- ======================= REPORT: photo + AI result ======================= -->
-<section class="screen no-nav" id="s-result" aria-label="New report">
+<section class="screen no-nav" id="s-result">
   <div class="photo-wrap" id="photoWrap">
-    <img id="photoPreview" alt="Your photo of the animal" class="hidden">
+    <img id="photoPreview" alt="" class="hidden">
     <svg id="photoPlaceholder" width="100%" height="100%" viewBox="0 0 390 340" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="390" height="340" fill="#7FB38A"/><circle cx="70" cy="80" r="70" fill="#6CA57B"/><circle cx="340" cy="60" r="90" fill="#6CA57B"/><path d="M0 260 C 100 220, 260 240, 390 210 L390 340 L0 340Z" fill="#5E9E6E"/></svg>
     <div class="frame"><i></i><i></i><i></i><i></i></div>
     <div class="scanline hidden" id="scanline"></div>
     <div class="photo-top">
-      <button class="round glass press" id="backBtn" aria-label="Back"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1D2B22" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
-      <button class="chip glass press" id="retakeBtn" style="border:none">Retake photo</button>
+      <button class="round glass press" id="backBtn" data-t-aria="aria_back"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1D2B22" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
+      <button class="chip glass press" id="retakeBtn" style="border:none"></button>
     </div>
   </div>
 
   <div class="sheet">
     <div style="display:flex;align-items:center;gap:14px" id="aiRow">
       <div style="flex-grow:1;display:flex;flex-direction:column;gap:2px;min-width:0">
-        <span class="ai-badge" id="aiBadge">AI is looking…</span>
-        <h1 id="aiAnimal" style="margin-top:4px;font-weight:800;font-size:34px;line-height:1;letter-spacing:-.6px">Identifying</h1>
-        <span id="aiNote" aria-live="polite" style="font-size:14px;color:var(--muted)">Hold on, this takes a few seconds.</span>
+        <span class="ai-badge" id="aiBadge"></span>
+        <h1 id="aiAnimal" style="margin-top:4px;font-weight:800;font-size:32px;line-height:1;letter-spacing:-.6px"></h1>
+        <span id="aiNote" aria-live="polite" style="font-size:14px;color:var(--muted)"></span>
       </div>
       <div class="ring" id="ring">
         <svg width="76" height="76" viewBox="0 0 76 76" aria-hidden="true">
           <circle cx="38" cy="38" r="28" fill="none" stroke="#E4E0D3" stroke-width="8"/>
           <circle class="val" id="ringVal" cx="38" cy="38" r="28" fill="none" stroke="#2E7A55" stroke-width="8" stroke-linecap="round" stroke-dasharray="175.9" stroke-dashoffset="175.9" transform="rotate(-90 38 38)"/>
         </svg>
-        <div class="num"><b id="ringNum">–</b><span>sure</span></div>
+        <div class="num"><b id="ringNum">–</b><span data-t="sure"></span></div>
       </div>
     </div>
 
     <div>
-      <label class="lbl" id="animalLbl">Which animal? <span class="muted" style="font-weight:500">Tap to change</span></label>
+      <p class="lbl" id="animalLbl"><span data-t="which_animal"></span> <span class="muted" style="font-weight:500" data-t="tap_change"></span></p>
       <div class="chips" id="animalChips" role="group" aria-labelledby="animalLbl"></div>
     </div>
 
     <div>
-      <label class="lbl" id="incLbl">What’s happening?</label>
+      <p class="lbl" id="incLbl" data-t="whats_happening"></p>
       <div class="chips" id="incidentChips" role="group" aria-labelledby="incLbl"></div>
     </div>
 
     <div class="card loc">
       <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1D2B22" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg></div>
       <div style="flex-grow:1;display:flex;flex-direction:column;min-width:0">
-        <b id="locTitle" style="font-size:14px">Finding your location…</b>
-        <span id="locSub" style="font-size:12px;color:var(--muted)">Using your phone’s GPS</span>
+        <b id="locTitle" style="font-size:14px"></b>
+        <span id="locSub" style="font-size:12px;color:var(--muted)"></span>
       </div>
-      <button class="linkish" id="changeLoc" style="font-size:13px">Change</button>
+      <button class="linkish" id="changeLoc" style="font-size:13px" data-t="change"></button>
     </div>
 
     <div>
-      <button class="btn press" id="sendBtn">Send report<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F6D77A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg></button>
+      <button class="btn press" id="sendBtn"></button>
       <p class="err" id="sendErr" role="alert"></p>
     </div>
   </div>
 </section>
 
 <!-- ======================= SENT / TRACK ======================= -->
-<section class="screen no-nav" id="s-sent" aria-label="Report status">
+<section class="screen no-nav" id="s-sent">
   <div class="done-head">
     <svg class="tick" width="180" height="180" viewBox="0 0 180 180" aria-hidden="true"><circle cx="90" cy="90" r="88" fill="#D3EAD3"/><path d="M58 92l22 22 44-48" stroke="#2E7A55" stroke-width="12" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
     <div style="display:flex;justify-content:space-between;position:relative">
-      <button class="round press" data-go="home" style="background:var(--bg)" aria-label="Back to home"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1D2B22" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
+      <button class="round press" data-go="home" style="background:var(--bg)" data-t-aria="aria_home"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1D2B22" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
     </div>
     <p class="eyebrow" id="sentId" style="color:#22573D;position:relative"></p>
-    <h1 id="sentTitle" style="font-weight:800;font-size:30px;line-height:1.05;letter-spacing:-.6px;width:260px;position:relative"></h1>
+    <h1 id="sentTitle" style="font-weight:800;font-size:30px;line-height:1.05;letter-spacing:-.6px;width:270px;position:relative"></h1>
     <div style="display:flex;gap:8px;flex-wrap:wrap;position:relative">
       <span class="badge" id="sentUrg"></span>
       <span class="badge" id="sentWhat" style="background:var(--bg);font-weight:600"></span>
@@ -350,36 +360,36 @@
   </div>
 
   <div class="pad stagger" id="sentBody" style="display:flex;flex-direction:column;gap:18px;margin-top:20px">
-    <div class="card" style="--i:0">
-      <p style="margin:0 0 4px;font-size:13px;color:var(--soft)">Received by <b style="color:var(--forest)">Elmina Township Management</b></p>
-      <p style="margin:0 0 14px;font-size:13px;color:var(--soft)">Recommended agency: <b style="color:var(--forest)" id="sentAgency"></b></p>
+    <div class="card">
+      <p style="margin:0 0 4px;font-size:13px;color:var(--soft)" data-t-html="received_by"></p>
+      <p style="margin:0 0 14px;font-size:13px;color:var(--soft)"><span data-t="rec_agency"></span> <b style="color:var(--forest)" id="sentAgency"></b></p>
       <ul class="timeline" id="timeline"></ul>
     </div>
-    <div style="--i:1">
-      <h2 style="font-weight:700;font-size:20px;margin-bottom:10px">Stay safe now</h2>
+    <div>
+      <h2 style="font-weight:700;font-size:20px;margin-bottom:10px" data-t="stay_safe"></h2>
       <div class="grid3" id="sentTips"></div>
     </div>
-    <a class="btn red press" id="sentCall" href="tel:999" style="--i:2"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg>Someone in danger? Call 999</a>
-    <div style="display:flex;gap:10px;--i:3">
-      <button class="btn ghost press" data-go="reports">My reports</button>
-      <button class="btn press" data-go="home">Done</button>
+    <a class="btn red press" id="sentCall" href="tel:999"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg><span data-t="call_someone"></span></a>
+    <div style="display:flex;gap:10px">
+      <button class="btn ghost press" data-go="reports" data-t="my_reports"></button>
+      <button class="btn press" data-go="home" data-t="done"></button>
     </div>
   </div>
 </section>
 
 <!-- ======================= MY REPORTS ======================= -->
-<section class="screen" id="s-reports" aria-label="My reports">
+<section class="screen" id="s-reports">
   <div class="page-head">
-    <p class="eyebrow" style="color:var(--leaf)">Saved on this phone</p>
-    <h1>My reports</h1>
+    <p class="eyebrow" style="color:var(--leaf)" data-t="saved_phone"></p>
+    <h1 data-t="my_reports"></h1>
   </div>
   <div class="pad" style="display:flex;flex-direction:column;gap:16px">
     <div class="stagger" id="repList" style="display:flex;flex-direction:column;gap:10px"></div>
     <div class="card" style="display:flex;flex-direction:column;gap:10px">
-      <label class="lbl" for="trackId" style="margin:0">Have a report number?</label>
+      <label class="lbl" for="trackId" style="margin:0" data-t="have_number"></label>
       <div style="display:flex;gap:8px">
-        <input type="number" id="trackId" inputmode="numeric" placeholder="e.g. 452">
-        <button class="btn press" id="trackBtn" style="width:110px;height:52px;border-radius:18px;font-size:15px">Check</button>
+        <input type="number" id="trackId" inputmode="numeric" data-t-ph="eg">
+        <button class="btn press" id="trackBtn" style="width:110px;height:52px;border-radius:18px;font-size:15px" data-t="check"></button>
       </div>
       <p class="err" id="trackErr" role="alert" style="margin:0"></p>
     </div>
@@ -387,60 +397,63 @@
 </section>
 
 <!-- ======================= MAP ======================= -->
-<section class="screen" id="s-map" aria-label="Sightings map">
+<section class="screen" id="s-map">
   <div class="page-head">
-    <p class="eyebrow" style="color:var(--leaf)">Last 14 days</p>
-    <h1>Sightings near you</h1>
+    <p class="eyebrow" style="color:var(--leaf)" data-t="last14"></p>
+    <h1 data-t="map_title"></h1>
   </div>
   <div class="pad" style="display:flex;flex-direction:column;gap:12px">
-    <div class="legend" id="legend" role="group" aria-label="Filter by animal"></div>
-    <div class="map-box" id="map" role="region" aria-label="Map of recent sightings"></div>
-    <p style="margin:0;font-size:12px;color:var(--soft)">Locations are rounded to about 100 m to protect residents’ privacy. <span id="mapCount"></span></p>
+    <div class="legend" id="legend" role="group"></div>
+    <div class="map-box" id="map" role="region"></div>
+    <p style="margin:0;font-size:12px;color:var(--soft)"><span data-t="privacy"></span> <span id="mapCount"></span></p>
   </div>
 </section>
 
 <!-- ======================= TIPS ======================= -->
-<section class="screen" id="s-tips" aria-label="Safety tips">
-  <div class="page-head">
-    <p class="eyebrow" style="color:var(--leaf)">Stay safe</p>
-    <h1>Safety tips</h1>
+<section class="screen" id="s-tips">
+  <div class="page-head" style="flex-direction:row;align-items:flex-end;justify-content:space-between;gap:12px">
+    <div style="display:flex;flex-direction:column;gap:4px">
+      <p class="eyebrow" style="color:var(--leaf)" data-t="stay_safe_eyebrow"></p>
+      <h1 data-t="tips_title"></h1>
+    </div>
+    <div class="lang-seg" role="group" aria-label="Language / Bahasa"><button data-lang="en">EN</button><button data-lang="ms">BM</button></div>
   </div>
   <div class="pad" style="display:flex;flex-direction:column;gap:14px">
-    <div class="legend" id="tipTabs" role="group" aria-label="Choose an animal"></div>
+    <div class="legend" id="tipTabs" role="group"></div>
     <div id="tipHero" style="border-radius:28px;padding:20px;display:flex;flex-direction:column;gap:4px">
-      <span class="eyebrow" id="tipMalay"></span>
+      <span class="eyebrow" data-t="guide"></span>
       <h2 id="tipName" style="font-weight:800;font-size:30px;letter-spacing:-.5px"></h2>
       <span id="tipWho" style="font-size:14px"></span>
     </div>
     <div class="stagger" id="tipList" style="display:flex;flex-direction:column;gap:10px"></div>
     <div style="background:var(--forest);color:var(--bg);border-radius:26px;padding:18px;display:flex;flex-direction:column;gap:10px">
-      <h2 style="font-weight:700;font-size:20px">In an emergency</h2>
-      <p style="margin:0;font-size:14px;color:#C9DBD0;line-height:1.45">If someone is bitten, attacked, or a snake or biawak is inside your home, call 999 straight away.</p>
-      <a class="btn red press" href="tel:999" style="height:52px">Call 999</a>
+      <h2 style="font-weight:700;font-size:20px" data-t="emergency_title"></h2>
+      <p style="margin:0;font-size:14px;color:#C9DBD0;line-height:1.45" data-t="emergency_body"></p>
+      <a class="btn red press" href="tel:999" style="height:52px" data-t="call999"></a>
     </div>
-    <p style="text-align:center;font-size:12px;margin:6px 0 0"><a href="/dashboard" style="color:var(--soft)">Township management? Open the dashboard</a></p>
+    <p style="text-align:center;font-size:12px;margin:6px 0 0"><a href="/dashboard" style="color:var(--soft)" data-t="dash_link"></a></p>
   </div>
 </section>
 
 <!-- ======================= BOTTOM BAR ======================= -->
-<nav class="nav hidden" id="nav" aria-label="Main">
-  <button data-go="home" aria-label="Home"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span>Home</span></button>
-  <button data-go="map" aria-label="Map"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></svg><span>Map</span></button>
-  <button class="plus press" id="navPlus" aria-label="Report an animal"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Report</span></button>
-  <button data-go="reports" aria-label="My reports"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg><span>My reports</span></button>
-  <button data-go="tips" aria-label="Safety tips"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg><span>Tips</span></button>
+<nav class="nav hidden" id="nav">
+  <button data-go="home"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span data-t="nav_home"></span></button>
+  <button data-go="map"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></svg><span data-t="nav_map"></span></button>
+  <button class="plus press" id="navPlus" data-t-aria="aria_report"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+  <button data-go="reports"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg><span data-t="nav_reports"></span></button>
+  <button data-go="tips"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg><span data-t="nav_tips"></span></button>
 </nav>
 </div>
 
 <!-- Location picker -->
 <div class="overlay hidden" id="pickSheet" role="dialog" aria-modal="true" aria-labelledby="pickTitle">
   <div class="panel">
-    <h2 id="pickTitle" style="font-weight:700;font-size:20px">Where is the animal?</h2>
-    <p style="margin:0;font-size:14px;color:var(--muted)">Tap the map to move the pin.</p>
+    <h2 id="pickTitle" style="font-weight:700;font-size:20px" data-t="pick_title"></h2>
+    <p style="margin:0;font-size:14px;color:var(--muted)" data-t="pick_body"></p>
     <div id="pickMap"></div>
     <div style="display:flex;gap:10px">
-      <button class="btn ghost press" id="pickCancel">Cancel</button>
-      <button class="btn press" id="pickOk">Use this spot</button>
+      <button class="btn ghost press" id="pickCancel" data-t="cancel"></button>
+      <button class="btn press" id="pickOk" data-t="use_spot"></button>
     </div>
   </div>
 </div>
@@ -448,49 +461,261 @@
 <script src="/static/vendor/leaflet.js"></script>
 <script>
 "use strict";
-if (location.protocol === "file:") document.getElementById("noServer").classList.remove("hidden");
 
-/* ---------- Data ---------- */
+/* =====================================================================
+   TEXT IN BOTH LANGUAGES
+   To fix a word, change it here. "en" = English, "ms" = Bahasa Melayu.
+   ===================================================================== */
+const TEXT = {
+  en: {
+    no_server: "<b>This page needs the WildWatch server.</b> Run the app (F5) and open <b>http://localhost:8000/app</b>.",
+    w_city: "City of Elmina",
+    w_title: "Share the township, <span class=\"em\">safely.</span>",
+    w_body: "Snap any animal you see. We’ll tell you what it is, how to stay safe, and who’s coming to help.",
+    w_loc: "We’ll ask for your location so responders can find the animal.",
+    w_start: "Get started",
+    call_danger: "In danger? Call 999",
+    greet_morning: "Good morning", greet_afternoon: "Good afternoon", greet_evening: "Good evening",
+    city: "City of Elmina", loc_on: "GPS on", loc_off: "Turn on GPS",
+    install_hint: "Add WildWatch to your home screen for one-tap reporting.",
+    install_ios: "Tap Share, then “Add to Home Screen”.",
+    install_add: "Add",
+    hero_eyebrow: "Report in 30 seconds", hero_title: "Saw an animal?",
+    hero_body: "Snap it. Our AI names it and tells you what to do.",
+    no_photo: "No photo? Report anyway",
+    near_eyebrow: "Near you this week", near_loading: "Checking recent sightings…",
+    near_quiet: "All quiet {where} this week", near_quiet_sub: "No animal reports in the last 7 days.",
+    where_near: "near you", where_elmina: "in Elmina",
+    near_count: "{animal}: {n} reports {where}", near_once: "{animal}: 1 report {where}",
+    near_fallback: "Stay alert around forest edges", near_fallback_sub: "Keep bins shut and food out of sight.",
+    neighbours: "Know your neighbours", all_tips: "All tips",
+    nav_home: "Home", nav_map: "Map", nav_tips: "Tips", nav_reports: "My reports", my_reports: "My reports",
+    retake: "Retake photo", add_photo: "Add a photo",
+    ai_looking: "AI is looking…", identifying: "Identifying", hold_on: "Hold on, this takes a few seconds.",
+    ai_detected: "AI detected", not_right: "Not right? Tap the correct animal below.",
+    not_sure: "Not sure", maybe: "It may be a {animal}. Please pick the animal below.", maybe_other: "It may be another animal. Please pick below.",
+    pick_animal: "Pick the animal", which_one: "Which one?",
+    ai_unavail: "The AI isn’t available right now. Please pick below.",
+    offline: "Offline", ai_unreach: "Couldn’t reach the AI. Please pick the animal below.",
+    sure: "sure", which_animal: "Which animal?", tap_change: "Tap to change", whats_happening: "What’s happening?",
+    loc_finding: "Finding your location…", loc_gps: "Using your phone’s GPS",
+    loc_current: "Your current location", loc_acc: "From GPS · accurate to about {m} m",
+    loc_off_title: "Location is off", loc_off_sub: "Tap Change to place a pin on the map",
+    change: "Change", pin_placed: "Pin placed on the map",
+    send: "Send report", sending: "Sending…",
+    err_animal: "Pick which animal you saw.", err_incident: "Pick what’s happening.",
+    err_loc: "Add the location: turn on GPS or tap Change.",
+    err_send: "Couldn’t send. Check your connection and try again.",
+    pick_title: "Where is the animal?", pick_body: "Tap the map to move the pin.", cancel: "Cancel", use_spot: "Use this spot",
+    report_sent: "Report #{id} · sent", report_n: "Report #{id}",
+    t_fresh: "Got it. Help is being arranged.", t_resolved: "All sorted. Thank you!",
+    t_progress: "Responders are on it.", t_arranged: "Help is being arranged.",
+    urg_high: "High urgency", urg_medium: "Medium urgency", urg_low: "Low urgency",
+    received_by: "Received by <b style=\"color:#1D2B22\">Elmina Township Management</b>",
+    rec_agency: "Recommended agency:",
+    st_received: "Report received", st_received_sub: "We have your report",
+    st_assigned: "Assigned by management", st_assigned_sub: "Elmina Township Management",
+    st_in_progress: "Team on the way", st_in_progress_sub: "Responders are handling it",
+    st_resolved: "Resolved", st_resolved_sub: "All sorted",
+    stay_safe: "Stay safe now", call_someone: "Someone in danger? Call 999", done: "Done",
+    saved_phone: "Saved on this phone", no_reports: "No reports yet",
+    no_reports_sub: "Reports you send from this phone appear here.", report_animal: "Report an animal",
+    have_number: "Have a report number?", eg: "e.g. 452", check: "Check",
+    err_enter: "Enter your report number.", err_notfound: "No report found with that number.",
+    load_fail: "Couldn’t load your reports. Check your connection.",
+    last14: "Last 14 days", map_title: "Sightings near you", all: "All",
+    privacy: "Locations are rounded to about 100 m to protect residents’ privacy.",
+    shown: "{n} sightings shown.", shown_one: "1 sighting shown.", you: "You",
+    stay_safe_eyebrow: "Stay safe", tips_title: "Safety tips", guide: "Safety guide",
+    emergency_title: "In an emergency",
+    emergency_body: "If someone is bitten or attacked, or a snake or monitor lizard is inside your home, call 999 straight away.",
+    call999: "Call 999", dash_link: "Township management? Open the dashboard",
+    aria_call: "Emergency, call 999", aria_dismiss: "Dismiss", aria_photo: "Take a photo of the animal",
+    aria_back: "Back", aria_home: "Back to home", aria_report: "Report an animal", aria_lang: "Change language to Malay",
+    photo_alt: "Your photo of the animal", map_label: "Map of recent sightings", filter_label: "Filter by animal", tips_label: "Choose an animal"
+  },
+  ms: {
+    no_server: "<b>Halaman ini memerlukan pelayan WildWatch.</b> Jalankan aplikasi (F5) dan buka <b>http://localhost:8000/app</b>.",
+    w_city: "Bandar Elmina",
+    w_title: "Kongsi kejiranan dengan <span class=\"em\">selamat.</span>",
+    w_body: "Ambil gambar haiwan yang anda nampak. Kami akan beritahu haiwan apa itu, cara untuk kekal selamat, dan siapa yang akan datang membantu.",
+    w_loc: "Kami akan minta lokasi anda supaya pasukan bantuan dapat mencari haiwan itu.",
+    w_start: "Mula",
+    call_danger: "Dalam bahaya? Hubungi 999",
+    greet_morning: "Selamat pagi", greet_afternoon: "Selamat petang", greet_evening: "Selamat malam",
+    city: "Bandar Elmina", loc_on: "GPS aktif", loc_off: "Hidupkan GPS",
+    install_hint: "Tambah WildWatch ke skrin utama untuk lapor dengan sekali tekan.",
+    install_ios: "Tekan Kongsi, kemudian “Tambah ke Skrin Utama”.",
+    install_add: "Tambah",
+    hero_eyebrow: "Lapor dalam 30 saat", hero_title: "Nampak haiwan?",
+    hero_body: "Ambil gambar. AI kami kenal pasti haiwan itu dan beritahu apa perlu dibuat.",
+    no_photo: "Tiada gambar? Lapor juga",
+    near_eyebrow: "Berhampiran anda minggu ini", near_loading: "Menyemak laporan terkini…",
+    near_quiet: "Tiada laporan {where} minggu ini", near_quiet_sub: "Tiada laporan haiwan dalam 7 hari lepas.",
+    where_near: "berhampiran anda", where_elmina: "di Elmina",
+    near_count: "{animal}: {n} laporan {where}", near_once: "{animal}: 1 laporan {where}",
+    near_fallback: "Berwaspada di kawasan pinggir hutan", near_fallback_sub: "Tutup tong sampah dan simpan makanan.",
+    neighbours: "Kenali jiran liar anda", all_tips: "Semua tip",
+    nav_home: "Utama", nav_map: "Peta", nav_tips: "Tip", nav_reports: "Laporan", my_reports: "Laporan saya",
+    retake: "Ambil semula", add_photo: "Tambah gambar",
+    ai_looking: "AI sedang mengecam…", identifying: "Mengecam", hold_on: "Sebentar, ini mengambil beberapa saat.",
+    ai_detected: "Dikesan oleh AI", not_right: "Salah? Pilih haiwan yang betul di bawah.",
+    not_sure: "Kurang pasti", maybe: "Mungkin {animal}. Sila pilih haiwan di bawah.", maybe_other: "Mungkin haiwan lain. Sila pilih di bawah.",
+    pick_animal: "Pilih haiwan", which_one: "Yang mana satu?",
+    ai_unavail: "AI tidak tersedia sekarang. Sila pilih di bawah.",
+    offline: "Luar talian", ai_unreach: "Tidak dapat menghubungi AI. Sila pilih haiwan di bawah.",
+    sure: "pasti", which_animal: "Haiwan apa?", tap_change: "Tekan untuk tukar", whats_happening: "Apa yang berlaku?",
+    loc_finding: "Mencari lokasi anda…", loc_gps: "Menggunakan GPS telefon anda",
+    loc_current: "Lokasi semasa anda", loc_acc: "Dari GPS · ketepatan kira-kira {m} m",
+    loc_off_title: "Lokasi dimatikan", loc_off_sub: "Tekan Tukar untuk letak pin pada peta",
+    change: "Tukar", pin_placed: "Pin diletakkan pada peta",
+    send: "Hantar laporan", sending: "Menghantar…",
+    err_animal: "Pilih haiwan yang anda nampak.", err_incident: "Pilih apa yang berlaku.",
+    err_loc: "Tambah lokasi: hidupkan GPS atau tekan Tukar.",
+    err_send: "Tidak dapat dihantar. Semak sambungan anda dan cuba lagi.",
+    pick_title: "Di mana haiwan itu?", pick_body: "Tekan peta untuk alih pin.", cancel: "Batal", use_spot: "Guna lokasi ini",
+    report_sent: "Laporan #{id} · dihantar", report_n: "Laporan #{id}",
+    t_fresh: "Diterima. Bantuan sedang diatur.", t_resolved: "Selesai. Terima kasih!",
+    t_progress: "Pasukan sedang mengendalikannya.", t_arranged: "Bantuan sedang diatur.",
+    urg_high: "Keutamaan tinggi", urg_medium: "Keutamaan sederhana", urg_low: "Keutamaan rendah",
+    received_by: "Diterima oleh <b style=\"color:#1D2B22\">Pengurusan Perbandaran Elmina</b>",
+    rec_agency: "Agensi dicadangkan:",
+    st_received: "Laporan diterima", st_received_sub: "Kami telah terima laporan anda",
+    st_assigned: "Diagihkan oleh pengurusan", st_assigned_sub: "Pengurusan Perbandaran Elmina",
+    st_in_progress: "Pasukan dalam perjalanan", st_in_progress_sub: "Pasukan sedang mengendalikannya",
+    st_resolved: "Selesai", st_resolved_sub: "Semua beres",
+    stay_safe: "Kekal selamat sekarang", call_someone: "Dalam bahaya? Hubungi 999", done: "Selesai",
+    saved_phone: "Disimpan dalam telefon ini", no_reports: "Belum ada laporan",
+    no_reports_sub: "Laporan yang anda hantar dari telefon ini akan dipaparkan di sini.", report_animal: "Laporkan haiwan",
+    have_number: "Ada nombor laporan?", eg: "cth. 452", check: "Semak",
+    err_enter: "Masukkan nombor laporan anda.", err_notfound: "Tiada laporan dengan nombor itu.",
+    load_fail: "Tidak dapat memuatkan laporan anda. Semak sambungan anda.",
+    last14: "14 hari lepas", map_title: "Laporan berhampiran anda", all: "Semua",
+    privacy: "Lokasi dibundarkan kira-kira 100 m untuk melindungi privasi penduduk.",
+    shown: "{n} laporan dipaparkan.", shown_one: "1 laporan dipaparkan.", you: "Anda",
+    stay_safe_eyebrow: "Kekal selamat", tips_title: "Tip keselamatan", guide: "Panduan keselamatan",
+    emergency_title: "Ketika kecemasan",
+    emergency_body: "Jika ada yang digigit atau diserang, atau ular atau biawak masuk ke dalam rumah, hubungi 999 segera.",
+    call999: "Hubungi 999", dash_link: "Pengurusan perbandaran? Buka papan pemuka",
+    aria_call: "Kecemasan, hubungi 999", aria_dismiss: "Tutup", aria_photo: "Ambil gambar haiwan",
+    aria_back: "Kembali", aria_home: "Kembali ke utama", aria_report: "Laporkan haiwan", aria_lang: "Tukar bahasa ke bahasa Inggeris",
+    photo_alt: "Gambar haiwan anda", map_label: "Peta laporan terkini", filter_label: "Tapis mengikut haiwan", tips_label: "Pilih haiwan"
+  }
+};
+
+/* Animals, situations, agencies and tips in both languages */
 const ANIMALS = {
-  monkey:         { name: "Monkey",         malay: "Monyet",      bg: "#F6D77A", deep: "#E2B93B", who: "Usually handled by PERHILITAN, or township management for bins." },
-  dog:            { name: "Stray dog",      malay: "Anjing liar", bg: "#BFD7F2", deep: "#6E9FD6", who: "Usually handled by MBSA (the city council)." },
-  snake:          { name: "Snake",          malay: "Ular",        bg: "#BFE0C2", deep: "#5E9E6E", who: "Inside a home: Bomba (999). Outside: PERHILITAN." },
-  wild_boar:      { name: "Wild boar",      malay: "Babi hutan",  bg: "#F5C7A9", deep: "#D9895F", who: "Usually handled by PERHILITAN." },
-  monitor_lizard: { name: "Monitor lizard", malay: "Biawak",      bg: "#D6CCF2", deep: "#9C86D9", who: "Inside a home: Bomba (999). Outside: PERHILITAN." },
-  other:          { name: "Other",          malay: "Lain-lain",   bg: "#F4C6D7", deep: "#D97A9E", who: "Township management will check and decide." }
+  monkey:         { bg: "#F6D77A", deep: "#E2B93B" },
+  dog:            { bg: "#BFD7F2", deep: "#6E9FD6" },
+  snake:          { bg: "#BFE0C2", deep: "#5E9E6E" },
+  wild_boar:      { bg: "#F5C7A9", deep: "#D9895F" },
+  monitor_lizard: { bg: "#D6CCF2", deep: "#9C86D9" },
+  other:          { bg: "#F4C6D7", deep: "#D97A9E" }
 };
-const INCIDENTS = { sighting: "Just a sighting", bins: "Rummaging bins", entered_home: "Entered home", damage: "Property damage", attack: "Attack or bite" };
-const STEPS = [
-  ["received", "Report received", "We have your report"],
-  ["assigned", "Assigned by management", "Elmina Township Management"],
-  ["in_progress", "Team on the way", "Responders are handling it"],
-  ["resolved", "Resolved", "All sorted"]
-];
+const ANIMAL_TEXT = {
+  en: {
+    monkey:         { name: "Monkey",         hint: "Shut your bins",    who: "Usually handled by PERHILITAN, or by township management when it’s about bins." },
+    dog:            { name: "Stray dog",      hint: "Stay calm",         who: "Usually handled by MBSA (Shah Alam City Council)." },
+    snake:          { name: "Snake",          hint: "Keep 2 m away",     who: "Inside a home: Fire and Rescue (999). Outside: PERHILITAN." },
+    wild_boar:      { name: "Wild boar",      hint: "Give it space",     who: "Usually handled by PERHILITAN." },
+    monitor_lizard: { name: "Monitor lizard", hint: "Secure your pets",  who: "Inside a home: Fire and Rescue (999). Outside: PERHILITAN." },
+    other:          { name: "Other",          hint: "Keep your distance", who: "Township management will check and decide." }
+  },
+  ms: {
+    monkey:         { name: "Monyet",      hint: "Tutup tong sampah",  who: "Biasanya dikendalikan oleh PERHILITAN, atau pengurusan perbandaran jika melibatkan tong sampah." },
+    dog:            { name: "Anjing liar", hint: "Bertenang",          who: "Biasanya dikendalikan oleh MBSA (Majlis Bandaraya Shah Alam)." },
+    snake:          { name: "Ular",        hint: "Jauhi 2 meter",      who: "Dalam rumah: Bomba (999). Di luar: PERHILITAN." },
+    wild_boar:      { name: "Babi hutan",  hint: "Beri ruang",         who: "Biasanya dikendalikan oleh PERHILITAN." },
+    monitor_lizard: { name: "Biawak",      hint: "Lindungi haiwan peliharaan", who: "Dalam rumah: Bomba (999). Di luar: PERHILITAN." },
+    other:          { name: "Lain-lain",   hint: "Jaga jarak",         who: "Pengurusan perbandaran akan menyemak dan memutuskan." }
+  }
+};
+const INCIDENTS = {
+  en: { sighting: "Just a sighting", bins: "Rummaging bins", entered_home: "Entered home", damage: "Property damage", attack: "Attack or bite" },
+  ms: { sighting: "Sekadar nampak", bins: "Selongkar tong sampah", entered_home: "Masuk ke rumah", damage: "Kerosakan harta", attack: "Serangan atau gigitan" }
+};
+const AGENCIES = {
+  en: { perhilitan: "PERHILITAN (Wildlife Department)", council: "MBSA (Shah Alam City Council)", township: "Elmina Township Management", emergency: "Fire and Rescue (999)" },
+  ms: { perhilitan: "PERHILITAN (Jabatan Perlindungan Hidupan Liar)", council: "MBSA (Majlis Bandaraya Shah Alam)", township: "Pengurusan Perbandaran Elmina", emergency: "Bomba / kecemasan (999)" }
+};
 const NEAR_TIP = {
-  monkey: "Keep bin lids shut and food out of sight.",
-  dog: "Walk in groups in the evening and keep children close.",
-  snake: "Keep grass short and drains clear around your home.",
-  wild_boar: "Seal food waste overnight.",
-  monitor_lizard: "Keep chickens and pet food secured.",
-  other: "Keep a safe distance from any wild animal."
+  en: { monkey: "Keep bin lids shut and food out of sight.", dog: "Walk in groups in the evening and keep children close.", snake: "Keep grass short and drains clear around your home.", wild_boar: "Seal food waste overnight.", monitor_lizard: "Keep chickens and pet food secured.", other: "Keep a safe distance from any wild animal." },
+  ms: { monkey: "Tutup tong sampah dan simpan makanan daripada dilihat.", dog: "Berjalan berkumpulan pada waktu petang dan pastikan kanak-kanak dekat.", snake: "Pastikan rumput pendek dan longkang bersih di sekeliling rumah.", wild_boar: "Tutup rapat sisa makanan pada waktu malam.", monitor_lizard: "Simpan ayam dan makanan haiwan peliharaan dengan selamat.", other: "Jaga jarak daripada haiwan liar." }
 };
-let TIPS = {  // replaced by the server's tips when they load
-  monkey: ["Do not feed or make eye contact with the monkey.", "Close windows and doors, and keep food out of sight.", "Keep bin lids shut and secured."],
-  dog: ["Stay calm, do not run or turn your back.", "Keep children indoors until the dog leaves.", "If bitten, wash the wound with soap for 15 minutes and see a doctor."],
-  snake: ["Keep at least 2 metres away and do not try to catch it.", "Keep children and pets away from the area.", "Watch where it goes so responders can find it."],
-  wild_boar: ["Move away slowly and give it space to leave.", "Do not corner or chase it.", "Keep food waste sealed overnight."],
-  monitor_lizard: ["Keep at least 2 metres away. Do not corner it, it can whip its tail and bite.", "Keep children, pets and chickens away, and close doors so it can leave on its own.", "Do not try to catch it. Watch where it goes so responders can find it."],
-  other: ["Keep a safe distance and do not touch the animal.", "Keep children and pets indoors."]
+const TIPS = {
+  en: {
+    monkey: ["Do not feed or make eye contact with the monkey.", "Close windows and doors, and keep food out of sight.", "Keep bin lids shut and secured."],
+    dog: ["Stay calm, do not run or turn your back.", "Keep children indoors until the dog leaves.", "If bitten, wash the wound with soap for 15 minutes and see a doctor."],
+    snake: ["Keep at least 2 metres away and do not try to catch it.", "Keep children and pets away from the area.", "Watch where it goes so responders can find it."],
+    wild_boar: ["Move away slowly and give it space to leave.", "Do not corner or chase it.", "Keep food waste sealed overnight."],
+    monitor_lizard: ["Keep at least 2 metres away. Do not corner it, it can whip its tail and bite.", "Keep children, pets and chickens away, and close doors so it can leave on its own.", "Do not try to catch it. Watch where it goes so responders can find it."],
+    other: ["Keep a safe distance and do not touch the animal.", "Keep children and pets indoors."]
+  },
+  ms: {
+    monkey: ["Jangan beri makan atau bertentang mata dengan monyet.", "Tutup tingkap dan pintu, dan simpan makanan daripada dilihat.", "Pastikan penutup tong sampah ditutup rapat."],
+    dog: ["Bertenang, jangan lari atau membelakangkannya.", "Pastikan kanak-kanak berada di dalam rumah sehingga anjing itu pergi.", "Jika digigit, basuh luka dengan sabun selama 15 minit dan berjumpa doktor."],
+    snake: ["Jauhi sekurang-kurangnya 2 meter dan jangan cuba menangkapnya.", "Jauhkan kanak-kanak dan haiwan peliharaan dari kawasan itu.", "Perhatikan ke mana ia pergi supaya pasukan bantuan dapat mencarinya."],
+    wild_boar: ["Bergerak menjauh perlahan-lahan dan beri ruang untuk ia pergi.", "Jangan kepung atau kejar.", "Tutup rapat sisa makanan pada waktu malam."],
+    monitor_lizard: ["Jauhi sekurang-kurangnya 2 meter. Jangan kepung kerana ia boleh melibas ekor dan menggigit.", "Jauhkan kanak-kanak, haiwan peliharaan dan ayam, dan tutup pintu bilik supaya ia boleh keluar sendiri.", "Jangan cuba menangkapnya. Perhatikan ke mana ia pergi supaya pasukan bantuan dapat mencarinya."],
+    other: ["Jaga jarak dan jangan sentuh haiwan itu.", "Pastikan kanak-kanak dan haiwan peliharaan berada di dalam rumah."]
+  }
 };
+const STEP_KEYS = ["received", "assigned", "in_progress", "resolved"];
 const ELMINA = [3.1800, 101.4930];
 const TIP_COLORS = ["#F6D77A", "#BFD7F2", "#F4C6D7"];
 
+/* ---------- Helpers ---------- */
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch { return d; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
 };
+let lang = store.get("ww_lang", null) || ((navigator.language || "").toLowerCase().startsWith("ms") ? "ms" : "en");
+const t = (key, vars) => {
+  let s = (TEXT[lang] && TEXT[lang][key]) ?? TEXT.en[key] ?? key;
+  if (vars) for (const [k, v] of Object.entries(vars)) s = s.split("{" + k + "}").join(v);
+  return s;
+};
+const aName = k => (ANIMAL_TEXT[lang][k] || ANIMAL_TEXT[lang].other).name;
+const incName = k => INCIDENTS[lang][k] || k;
+const agencyName = k => AGENCIES[lang][k] || k;
+const fmtDate = s => new Date(s).toLocaleString(lang === "ms" ? "ms-MY" : "en-MY", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+if (location.protocol === "file:") $("noServer").classList.remove("hidden");
+
+/* Put every fixed text on the page in the chosen language */
+function applyLang() {
+  document.documentElement.lang = lang === "ms" ? "ms" : "en";
+  document.querySelectorAll("[data-t]").forEach(el => { el.textContent = t(el.dataset.t); });
+  document.querySelectorAll("[data-t-html]").forEach(el => { el.innerHTML = t(el.dataset.tHtml); });
+  document.querySelectorAll("[data-t-aria]").forEach(el => { el.setAttribute("aria-label", t(el.dataset.tAria)); });
+  document.querySelectorAll("[data-t-ph]").forEach(el => { el.setAttribute("placeholder", t(el.dataset.tPh)); });
+  document.querySelectorAll(".lang-seg button").forEach(b => { b.classList.toggle("on", b.dataset.lang === lang); b.setAttribute("aria-pressed", b.dataset.lang === lang); });
+  $("langPillTxt").textContent = lang === "ms" ? "BM" : "EN";
+  $("langPill").setAttribute("aria-label", t("aria_lang"));
+  $("photoPreview").alt = t("photo_alt");
+  $("map").setAttribute("aria-label", t("map_label"));
+  $("legend").setAttribute("aria-label", t("filter_label"));
+  $("tipTabs").setAttribute("aria-label", t("tips_label"));
+  setSendLabel();
+  $("locStatus").textContent = here.lat !== null ? t("loc_on") : t("loc_off");
+}
+function setLang(l) {
+  if (l === lang) return;
+  lang = l; store.set("ww_lang", l);
+  applyLang();
+  // Redraw whatever is on screen with the new words
+  $("animalTiles").innerHTML = ""; $("tipTabs").innerHTML = ""; $("legend").innerHTML = "";
+  if (current === "home") renderHome();
+  if (current === "result") { animalChips(); incidentChips(); renderAI(); renderLoc(); $("retakeBtn").textContent = t(aiState.kind === "nophoto" ? "add_photo" : "retake"); }
+  if (current === "sent" && lastStatus) renderStatus(lastStatus.r, lastStatus.fresh);
+  if (current === "reports") renderReports();
+  if (current === "map") { buildLegend(); drawMap(); }
+  if (current === "tips") renderTips(tipAnimal);
+  if (!$("installBar").classList.contains("hidden")) setInstallHint();
+}
+document.addEventListener("click", e => { const b = e.target.closest("[data-lang]"); if (b) setLang(b.dataset.lang); });
+$("langPill").onclick = () => setLang(lang === "ms" ? "en" : "ms");
 
 /* ---------- Sounds (made in code, no files) ---------- */
 const Sound = (() => {
@@ -504,12 +729,12 @@ const Sound = (() => {
   }
   function tone(freq, start, dur, type, vol) {
     const c = ac(); if (!c) return;
-    const t = c.currentTime + start, o = c.createOscillator(), g = c.createGain();
-    o.type = type; o.frequency.setValueAtTime(freq, t);
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(vol, t + 0.012);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + dur + 0.03);
+    const tt = c.currentTime + start, o = c.createOscillator(), g = c.createGain();
+    o.type = type; o.frequency.setValueAtTime(freq, tt);
+    g.gain.setValueAtTime(0.0001, tt);
+    g.gain.exponentialRampToValueAtTime(vol, tt + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, tt + dur);
+    o.connect(g); g.connect(c.destination); o.start(tt); o.stop(tt + dur + 0.03);
   }
   function noise(len, from, to, vol) {
     const c = ac(); if (!c) return;
@@ -567,47 +792,50 @@ function locate(onDone) {
   navigator.geolocation.getCurrentPosition(p => {
     here.lat = p.coords.latitude; here.lng = p.coords.longitude; here.acc = p.coords.accuracy;
     store.set("ww_loc", true);
-    $("locStatus").textContent = "location on";
+    $("locStatus").textContent = t("loc_on");
     onDone && onDone(true);
-  }, () => { $("locStatus").textContent = "Turn on location"; onDone && onDone(false); },
+  }, () => { $("locStatus").textContent = t("loc_off"); onDone && onDone(false); },
   { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 });
 }
 $("locStatus").onclick = () => locate(ok => { if (ok) renderNear(); });
 function distKm(a, b, c, d) { const r = Math.PI / 180, x = (d - b) * r * Math.cos((a + c) / 2 * r), y = (c - a) * r; return Math.sqrt(x * x + y * y) * 6371; }
 
 /* ---------- Home ---------- */
-function greeting() { const h = new Date().getHours(); return h < 12 ? "Selamat pagi" : h < 19 ? "Selamat petang" : "Selamat malam"; }
+function greeting() { const h = new Date().getHours(); return t(h < 12 ? "greet_morning" : h < 19 ? "greet_afternoon" : "greet_evening"); }
 function renderHome() {
   $("greet").textContent = greeting();
   const tiles = $("animalTiles");
   if (!tiles.children.length) {
-    for (const [k, a] of Object.entries(ANIMALS)) {
-      const t = document.createElement("button");
-      t.className = "tile press"; t.style.background = a.bg; t.setAttribute("aria-label", a.name + " safety tips");
-      t.innerHTML = "<b>" + esc(a.name) + "</b><span>" + esc(a.malay) + "</span>";
-      t.onclick = () => { tipAnimal = k; show("tips", "in-up"); };
-      tiles.appendChild(t);
+    for (const k of Object.keys(ANIMALS)) {
+      const a = ANIMALS[k], tx = ANIMAL_TEXT[lang][k];
+      const b = document.createElement("button");
+      b.className = "tile press"; b.style.background = a.bg;
+      b.innerHTML = "<b>" + esc(tx.name) + "</b><span>" + esc(tx.hint) + "</span>";
+      b.onclick = () => { tipAnimal = k; show("tips", "in-up"); };
+      tiles.appendChild(b);
     }
   }
   renderNear();
 }
 let sightings7 = null;
 async function renderNear() {
+  if (!sightings7) $("nearTitle").textContent = t("near_loading");
   try {
     if (!sightings7) { const r = await fetch("/api/public/sightings?days=7"); if (!r.ok) throw 0; sightings7 = await r.json(); }
-    let list = sightings7, where = "in Elmina";
-    if (here.lat !== null) { list = sightings7.filter(s => distKm(here.lat, here.lng, s.lat, s.lng) <= 1.5); where = "near you"; }
-    if (!list.length) { $("nearTitle").textContent = "All quiet " + where + " this week"; $("nearTip").textContent = "No animal reports in the last 7 days."; return; }
+    let list = sightings7, where = t("where_elmina");
+    if (here.lat !== null) { list = sightings7.filter(s => distKm(here.lat, here.lng, s.lat, s.lng) <= 1.5); where = t("where_near"); }
+    if (!list.length) { $("nearTitle").textContent = t("near_quiet", { where }); $("nearTip").textContent = t("near_quiet_sub"); return; }
     const count = {}; list.forEach(s => count[s.animal] = (count[s.animal] || 0) + 1);
     const top = Object.entries(count).sort((a, b) => b[1] - a[1])[0];
-    const a = ANIMALS[top[0]] || ANIMALS.other;
-    $("nearTitle").textContent = a.name + " reported " + top[1] + (top[1] === 1 ? " time " : " times ") + where;
-    $("nearTip").textContent = NEAR_TIP[top[0]] || NEAR_TIP.other;
-  } catch { $("nearTitle").textContent = "Stay alert around forest edges"; $("nearTip").textContent = "Keep bins shut and food out of sight."; }
+    $("nearTitle").textContent = t(top[1] === 1 ? "near_once" : "near_count", { animal: aName(top[0]), n: top[1], where });
+    $("nearTip").textContent = NEAR_TIP[lang][top[0]] || NEAR_TIP[lang].other;
+  } catch { $("nearTitle").textContent = t("near_fallback"); $("nearTip").textContent = t("near_fallback_sub"); }
 }
 
 /* ---------- Report flow ---------- */
 const report = { animal: null, incident: null, lat: null, lng: null, photo: null, confidence: null, ai_mode: null, placed: false };
+let aiState = { kind: "loading", animal: null, conf: 0 };
+let locState = "finding";
 function resetReport() {
   Object.assign(report, { animal: null, incident: null, lat: null, lng: null, photo: null, confidence: null, ai_mode: null, placed: false });
   $("sendErr").textContent = ""; $("sendBtn").disabled = false;
@@ -625,20 +853,20 @@ $("photoInput").onchange = e => {
 
 function animalChips() {
   const box = $("animalChips"); box.innerHTML = "";
-  for (const [k, a] of Object.entries(ANIMALS)) {
+  for (const k of Object.keys(ANIMALS)) {
     const b = document.createElement("button");
     b.type = "button"; b.className = "animal-chip press" + (report.animal === k ? " on" : "");
-    b.style.background = a.bg; b.textContent = a.name; b.setAttribute("aria-pressed", report.animal === k);
+    b.style.background = ANIMALS[k].bg; b.textContent = aName(k); b.setAttribute("aria-pressed", report.animal === k);
     b.onclick = () => { report.animal = k; animalChips(); $("sendErr").textContent = ""; };
     box.appendChild(b);
   }
 }
 function incidentChips() {
   const box = $("incidentChips"); box.innerHTML = "";
-  for (const [k, label] of Object.entries(INCIDENTS)) {
+  for (const k of Object.keys(INCIDENTS.en)) {
     const b = document.createElement("button");
     b.type = "button"; b.className = "chip" + (report.incident === k ? " on" : "");
-    b.textContent = label; b.setAttribute("aria-pressed", report.incident === k);
+    b.textContent = incName(k); b.setAttribute("aria-pressed", report.incident === k);
     b.onclick = () => { report.incident = k; incidentChips(); $("sendErr").textContent = ""; };
     box.appendChild(b);
   }
@@ -652,19 +880,30 @@ function setRing(conf, ok) {
   const step = () => { n = Math.min(target, n + Math.max(1, Math.round(target / 18))); $("ringNum").textContent = n + "%"; if (n < target) requestAnimationFrame(step); };
   step();
 }
+/* Shows the AI's answer in the current language */
+function renderAI() {
+  const s = aiState, nm = s.animal ? aName(s.animal) : "";
+  const set = (badge, title, note) => { $("aiBadge").textContent = badge; $("aiAnimal").textContent = title; $("aiNote").textContent = note; };
+  if (s.kind === "loading") set(t("ai_looking"), t("identifying"), t("hold_on"));
+  else if (s.kind === "sure") set(t("ai_detected"), nm, t("not_right"));
+  else if (s.kind === "unsure") set(t("not_sure"), nm, s.animal === "other" ? t("maybe_other") : t("maybe", { animal: lang === "en" ? nm.toLowerCase() : nm.toLowerCase() }));
+  else if (s.kind === "nomodel") set(t("pick_animal"), t("which_one"), t("ai_unavail"));
+  else if (s.kind === "offline") set(t("offline"), t("which_one"), t("ai_unreach"));
+}
 async function startResult(file) {
   animalChips(); incidentChips();
   $("ringVal").style.strokeDashoffset = 175.9; $("ringNum").textContent = "–";
   if (file) {
     $("photoPreview").src = URL.createObjectURL(file);
     $("photoPreview").classList.remove("hidden"); $("photoPlaceholder").classList.add("hidden");
-    $("retakeBtn").textContent = "Retake photo";
+    $("retakeBtn").textContent = t("retake");
     $("aiRow").classList.remove("hidden");
-    $("aiBadge").textContent = "AI is looking…"; $("aiAnimal").textContent = "Identifying"; $("aiNote").textContent = "Hold on, this takes a few seconds.";
+    aiState = { kind: "loading", animal: null }; renderAI();
     $("scanline").classList.remove("hidden");
   } else {
+    aiState = { kind: "nophoto", animal: null };
     $("photoPreview").classList.add("hidden"); $("photoPlaceholder").classList.remove("hidden");
-    $("retakeBtn").textContent = "Add a photo";
+    $("retakeBtn").textContent = t("add_photo");
     $("aiRow").classList.add("hidden"); $("scanline").classList.add("hidden");
   }
   show("result", "in-up");
@@ -678,41 +917,29 @@ async function startResult(file) {
     report.photo = r.photo; report.confidence = r.confidence; report.ai_mode = r.mode;
     $("scanline").classList.add("hidden");
     if (r.animal && ANIMALS[r.animal]) {
-      const a = ANIMALS[r.animal];
-      $("aiAnimal").textContent = a.name;
-      if (r.confident) {
-        report.animal = r.animal;
-        $("aiBadge").textContent = "AI detected";
-        $("aiNote").textContent = "Not right? Tap the correct animal below.";
-      } else {
-        $("aiBadge").textContent = "Not sure";
-        $("aiNote").textContent = "Maybe a " + a.name.toLowerCase() + ". Please pick the animal below.";
-      }
+      if (r.confident) report.animal = r.animal;
+      aiState = { kind: r.confident ? "sure" : "unsure", animal: r.animal };
       setRing(r.confidence || 0, !!r.confident); Sound.pop();
-    } else {
-      $("aiBadge").textContent = "Pick the animal"; $("aiAnimal").textContent = "Which one?";
-      $("aiNote").textContent = "The AI isn’t available right now. Please pick below."; setRing(0, false);
-    }
-    animalChips();
+    } else { aiState = { kind: "nomodel", animal: null }; setRing(0, false); }
   } catch {
     $("scanline").classList.add("hidden");
-    $("aiBadge").textContent = "Offline"; $("aiAnimal").textContent = "Which one?";
-    $("aiNote").textContent = "Couldn’t reach the AI. Please pick the animal below."; setRing(0, false);
+    aiState = { kind: "offline", animal: null }; setRing(0, false);
   }
+  renderAI(); animalChips();
+}
+function renderLoc() {
+  if (locState === "finding") { $("locTitle").textContent = t("loc_finding"); $("locSub").textContent = t("loc_gps"); }
+  else if (locState === "gps") { $("locTitle").textContent = t("loc_current"); $("locSub").textContent = t("loc_acc", { m: Math.max(5, Math.round(here.acc || 0)) }); }
+  else if (locState === "off") { $("locTitle").textContent = t("loc_off_title"); $("locSub").textContent = t("loc_off_sub"); }
+  else if (locState === "pin") { $("locTitle").textContent = t("pin_placed"); $("locSub").textContent = report.lat.toFixed(5) + ", " + report.lng.toFixed(5); }
 }
 function fillLocation() {
   if (report.placed) return;
-  $("locTitle").textContent = "Finding your location…"; $("locSub").textContent = "Using your phone’s GPS";
+  locState = "finding"; renderLoc();
   locate(ok => {
     if (report.placed) return;
-    if (ok) {
-      report.lat = here.lat; report.lng = here.lng;
-      $("locTitle").textContent = "Your current location";
-      $("locSub").textContent = "From GPS · accurate to about " + Math.max(5, Math.round(here.acc || 0)) + " m";
-    } else {
-      $("locTitle").textContent = "Location is off";
-      $("locSub").textContent = "Tap Change to place a pin on the map";
-    }
+    if (ok) { report.lat = here.lat; report.lng = here.lng; locState = "gps"; } else locState = "off";
+    renderLoc();
   });
 }
 
@@ -733,57 +960,57 @@ $("changeLoc").onclick = () => {
 $("pickCancel").onclick = () => $("pickSheet").classList.add("hidden");
 $("pickOk").onclick = () => {
   report.lat = pickLatLng.lat; report.lng = pickLatLng.lng; report.placed = true;
-  $("locTitle").textContent = "Pin placed on the map";
-  $("locSub").textContent = report.lat.toFixed(5) + ", " + report.lng.toFixed(5);
+  locState = "pin"; renderLoc();
   $("pickSheet").classList.add("hidden");
 };
 
 /* Send */
+const SEND_ICON = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F6D77A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg>';
+let sending = false;
+function setSendLabel() { $("sendBtn").innerHTML = sending ? '<span class="spinner"></span>' + esc(t("sending")) : esc(t("send")) + SEND_ICON; }
 $("sendBtn").onclick = async () => {
   const err = $("sendErr");
-  if (!report.animal) { Sound.error(); return err.textContent = "Pick which animal you saw."; }
-  if (!report.incident) { Sound.error(); return err.textContent = "Pick what’s happening."; }
-  if (report.lat === null) { Sound.error(); return err.textContent = "Add the location: turn on GPS or tap Change."; }
-  const btn = $("sendBtn"); btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Sending…';
+  if (!report.animal) { Sound.error(); return err.textContent = t("err_animal"); }
+  if (!report.incident) { Sound.error(); return err.textContent = t("err_incident"); }
+  if (report.lat === null) { Sound.error(); return err.textContent = t("err_loc"); }
+  const btn = $("sendBtn"); btn.disabled = true; sending = true; setSendLabel();
   Sound.send();
   const fd = new FormData();
   for (const k of ["lat", "lng", "animal", "incident", "photo", "confidence", "ai_mode"]) if (report[k] !== null && report[k] !== undefined) fd.append(k, report[k]);
   try {
     const res = await fetch("/api/reports", { method: "POST", body: fd });
-    if (!res.ok) { let m = "Failed"; try { m = (await res.json()).detail || m; } catch {} throw new Error(m); }
+    if (!res.ok) throw 0;
     const r = await res.json();
     const mine = store.get("ww_reports", []);
     if (!mine.includes(r.id)) mine.unshift(r.id);
     store.set("ww_reports", mine.slice(0, 50));
-    renderStatus({ id: r.id, animal: report.animal, incident: report.incident, urgency: r.urgency, agency_label: r.agency_label, status: r.status, tips: r.tips }, true);
+    renderStatus({ id: r.id, animal: report.animal, incident: report.incident, urgency: r.urgency, agency: r.agency, status: r.status }, true);
     show("sent", "in-up");
     setTimeout(() => Sound.done(), 250);
-  } catch (e) {
-    Sound.error(); err.textContent = "Couldn’t send: " + e.message;
+  } catch {
+    Sound.error(); err.textContent = t("err_send");
   } finally {
-    btn.disabled = false;
-    btn.innerHTML = 'Send report<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F6D77A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg>';
+    btn.disabled = false; sending = false; setSendLabel();
   }
 };
 
 /* ---------- Status screen (just sent, or tracking) ---------- */
+let lastStatus = null;
 function renderStatus(r, fresh) {
-  const a = ANIMALS[r.animal] || ANIMALS.other;
-  const idx = Math.max(0, STEPS.findIndex(s => s[0] === r.status));
-  $("sentId").textContent = "Report #" + r.id + (fresh ? " · sent" : "");
-  $("sentTitle").textContent = fresh ? "Got it. Help is being arranged."
-    : r.status === "resolved" ? "All sorted. Thank you!" : r.status === "in_progress" ? "Responders are on it." : "Help is being arranged.";
-  const u = $("sentUrg"); u.className = "badge u-" + r.urgency; u.textContent = (r.urgency || "").replace(/^./, c => c.toUpperCase()) + " urgency";
-  $("sentWhat").textContent = a.name + " · " + (INCIDENTS[r.incident] || r.incident);
-  $("sentAgency").textContent = r.agency_label || "";
-  $("timeline").innerHTML = STEPS.map((s, i) => {
-    const cls = i < idx || (i === idx && s[0] === "resolved") ? "done" : i === idx ? "now" : "";
-    let sub = s[2];
-    if (i === 0 && r.created_at) sub = new Date(r.created_at).toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
-    return '<li class="' + cls + '"><div class="rail"><span class="dot" style="animation-delay:' + (i * 140 + 200) + 'ms"></span><span class="bar"></span></div><div class="txt"><b>' + esc(s[1]) + "</b><span>" + esc(sub) + "</span></div></li>";
+  lastStatus = { r, fresh };
+  const idx = Math.max(0, STEP_KEYS.indexOf(r.status));
+  $("sentId").textContent = t(fresh ? "report_sent" : "report_n", { id: r.id });
+  $("sentTitle").textContent = fresh ? t("t_fresh") : r.status === "resolved" ? t("t_resolved") : r.status === "in_progress" ? t("t_progress") : t("t_arranged");
+  const u = $("sentUrg"); u.className = "badge u-" + r.urgency; u.textContent = t("urg_" + r.urgency);
+  $("sentWhat").textContent = aName(r.animal) + " · " + incName(r.incident);
+  $("sentAgency").textContent = agencyName(r.agency);
+  $("timeline").innerHTML = STEP_KEYS.map((k, i) => {
+    const cls = i < idx || (i === idx && k === "resolved") ? "done" : i === idx ? "now" : "";
+    const sub = i === 0 && r.created_at ? fmtDate(r.created_at) : t("st_" + k + "_sub");
+    return '<li class="' + cls + '"><div class="rail"><span class="dot" style="animation-delay:' + (i * 140 + 200) + 'ms"></span><span class="bar"></span></div><div class="txt"><b>' + esc(t("st_" + k)) + "</b><span>" + esc(sub) + "</span></div></li>";
   }).join("");
-  const tips = (r.tips && r.tips.length ? r.tips : TIPS[r.animal] || TIPS.other).slice(0, 3);
-  $("sentTips").innerHTML = tips.map((t, i) => '<div class="tipcard" style="background:' + TIP_COLORS[i % 3] + '"><b>' + (i + 1) + "</b><span>" + esc(t) + "</span></div>").join("");
+  const tips = (TIPS[lang][r.animal] || TIPS[lang].other).slice(0, 3);
+  $("sentTips").innerHTML = tips.map((tip, i) => '<div class="tipcard" style="background:' + TIP_COLORS[i % 3] + '"><b>' + (i + 1) + "</b><span>" + esc(tip) + "</span></div>").join("");
   $("sentCall").classList.toggle("big", r.urgency === "high");
 }
 
@@ -791,7 +1018,7 @@ function renderStatus(r, fresh) {
 async function renderReports() {
   const box = $("repList"), ids = store.get("ww_reports", []);
   if (!ids.length) {
-    box.innerHTML = '<div class="card empty"><h2 style="font-weight:700;font-size:20px;margin-bottom:6px">No reports yet</h2><p class="muted" style="margin:0 0 14px;font-size:14px">Reports you send from this phone appear here.</p><button class="btn press" id="firstReport">Report an animal</button></div>';
+    box.innerHTML = '<div class="card empty"><h2 style="font-weight:700;font-size:20px;margin-bottom:6px">' + esc(t("no_reports")) + '</h2><p class="muted" style="margin:0 0 14px;font-size:14px">' + esc(t("no_reports_sub")) + '</p><button class="btn press" id="firstReport">' + esc(t("report_animal")) + "</button></div>";
     $("firstReport").onclick = () => $("photoInput").click();
     return;
   }
@@ -803,79 +1030,82 @@ async function renderReports() {
     const a = ANIMALS[r.animal] || ANIMALS.other;
     const b = document.createElement("button");
     b.className = "rep press"; b.style.setProperty("--i", i);
-    b.innerHTML = '<span class="sw" style="background:' + a.bg + '">#' + esc(r.id) + '</span>' +
-      '<span style="flex-grow:1;display:flex;flex-direction:column;gap:3px;min-width:0"><b style="font-size:15px">' + esc(a.name) + " · " + esc(INCIDENTS[r.incident] || r.incident) + '</b><span style="font-size:12px;color:var(--soft)">' +
-      esc(new Date(r.created_at).toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })) + "</span>" +
-      '<span class="pill st-' + esc(r.status) + '" style="align-self:flex-start">' + esc((STEPS.find(s => s[0] === r.status) || [0, r.status])[1]) + "</span></span>" +
+    b.innerHTML = '<span class="sw" style="background:' + a.bg + '">#' + esc(r.id) + "</span>" +
+      '<span style="flex-grow:1;display:flex;flex-direction:column;gap:3px;min-width:0"><b style="font-size:15px">' + esc(aName(r.animal)) + " · " + esc(incName(r.incident)) + '</b><span style="font-size:12px;color:var(--soft)">' + esc(fmtDate(r.created_at)) + "</span>" +
+      '<span class="pill st-' + esc(r.status) + '" style="align-self:flex-start">' + esc(t("st_" + r.status)) + "</span></span>" +
       '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5A6A60" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
     b.onclick = () => { renderStatus(r, false); show("sent", "in-right"); };
     box.appendChild(b);
   });
-  if (!box.children.length) box.innerHTML = '<div class="card empty"><p class="muted" style="margin:0">Couldn’t load your reports. Check your connection.</p></div>';
+  if (!box.children.length) box.innerHTML = '<div class="card empty"><p class="muted" style="margin:0">' + esc(t("load_fail")) + "</p></div>";
   restagger($("s-reports"));
 }
 $("trackBtn").onclick = async () => {
   const id = $("trackId").value.trim(), err = $("trackErr"); err.textContent = "";
-  if (!id) { Sound.error(); return err.textContent = "Enter your report number."; }
+  if (!id) { Sound.error(); return err.textContent = t("err_enter"); }
   try {
     const res = await fetch("/api/reports/" + encodeURIComponent(id));
     if (!res.ok) throw 0;
     const r = await res.json(); renderStatus(r, false); show("sent", "in-right");
-  } catch { Sound.error(); err.textContent = "No report found with that number."; }
+  } catch { Sound.error(); err.textContent = t("err_notfound"); }
 };
 
 /* ---------- Map ---------- */
-let map = null, layer = null, mapData = null, mapFilter = "all";
+let map = null, layer = null, mapData = null, mapFilter = "all", youDot = null;
+function buildLegend() {
+  const leg = $("legend"); leg.innerHTML = "";
+  const all = document.createElement("button"); all.className = "chip" + (mapFilter === "all" ? " on" : ""); all.textContent = t("all"); all.dataset.k = "all"; leg.appendChild(all);
+  for (const k of Object.keys(ANIMALS)) {
+    const b = document.createElement("button"); b.className = "chip" + (mapFilter === k ? " on" : ""); b.dataset.k = k;
+    b.innerHTML = '<i style="background:' + ANIMALS[k].deep + '"></i>' + esc(aName(k)); leg.appendChild(b);
+  }
+}
+$("legend").onclick = e => { const b = e.target.closest("button"); if (!b) return; mapFilter = b.dataset.k; $("legend").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b)); drawMap(); };
 async function openMap() {
   if (!map) {
     map = L.map("map").setView(here.lat !== null ? [here.lat, here.lng] : ELMINA, 14);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "&copy; OpenStreetMap" }).addTo(map);
     layer = L.layerGroup().addTo(map);
-    const leg = $("legend");
-    const all = document.createElement("button"); all.className = "chip on"; all.textContent = "All"; all.dataset.k = "all"; leg.appendChild(all);
-    for (const [k, a] of Object.entries(ANIMALS)) {
-      const b = document.createElement("button"); b.className = "chip"; b.dataset.k = k;
-      b.innerHTML = '<i style="background:' + a.deep + '"></i>' + esc(a.name); leg.appendChild(b);
-    }
-    leg.onclick = e => { const b = e.target.closest("button"); if (!b) return; mapFilter = b.dataset.k; leg.querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b)); drawMap(); };
   }
+  if (!$("legend").children.length) buildLegend();
   setTimeout(() => map.invalidateSize(), 80);
-  if (here.lat !== null && !map._youDot) map._youDot = L.circleMarker([here.lat, here.lng], { radius: 8, color: "#fff", weight: 3, fillColor: "#1D2B22", fillOpacity: 1 }).addTo(map).bindTooltip("You");
+  if (here.lat !== null && !youDot) youDot = L.circleMarker([here.lat, here.lng], { radius: 8, color: "#fff", weight: 3, fillColor: "#1D2B22", fillOpacity: 1 }).addTo(map);
+  if (youDot) youDot.bindTooltip(t("you"));
   if (!mapData) {
     try { const r = await fetch("/api/public/sightings?days=14"); mapData = r.ok ? await r.json() : []; } catch { mapData = []; }
   }
   drawMap();
 }
 function drawMap() {
+  if (!layer || !mapData) return;
   layer.clearLayers();
   const list = mapData.filter(s => mapFilter === "all" || s.animal === mapFilter);
   list.forEach(s => {
     const a = ANIMALS[s.animal] || ANIMALS.other;
     L.circleMarker([s.lat, s.lng], { radius: 9, color: "#fff", weight: 2, fillColor: a.deep, fillOpacity: .9 })
-      .bindPopup("<b>" + esc(a.name) + "</b><br>" + esc(INCIDENTS[s.incident] || s.incident) + "<br>" + esc(s.day)).addTo(layer);
+      .bindPopup("<b>" + esc(aName(s.animal)) + "</b><br>" + esc(incName(s.incident)) + "<br>" + esc(s.day)).addTo(layer);
   });
-  $("mapCount").textContent = list.length + (list.length === 1 ? " sighting shown." : " sightings shown.");
+  $("mapCount").textContent = list.length === 1 ? t("shown_one") : t("shown", { n: list.length });
 }
 
 /* ---------- Tips ---------- */
 let tipAnimal = "monkey";
-fetch("/api/public/tips").then(r => r.ok ? r.json() : null).then(d => { if (d && d.tips) TIPS = d.tips; }).catch(() => {});
 function renderTips(k) {
   tipAnimal = k;
   const tabs = $("tipTabs");
   if (!tabs.children.length) {
-    for (const [key, a] of Object.entries(ANIMALS)) {
+    for (const key of Object.keys(ANIMALS)) {
       const b = document.createElement("button"); b.className = "chip"; b.dataset.k = key;
-      b.innerHTML = '<i style="background:' + a.deep + '"></i>' + esc(a.name);
+      b.innerHTML = '<i style="background:' + ANIMALS[key].deep + '"></i>' + esc(aName(key));
       b.onclick = () => { renderTips(key); restagger($("s-tips")); };
       tabs.appendChild(b);
     }
   }
   tabs.querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.k === k));
-  const a = ANIMALS[k];
+  const a = ANIMALS[k], tx = ANIMAL_TEXT[lang][k];
   $("tipHero").style.background = a.bg;
-  $("tipMalay").textContent = a.malay; $("tipName").textContent = a.name; $("tipWho").textContent = a.who;
-  $("tipList").innerHTML = (TIPS[k] || []).map((t, i) => '<div class="tip-row" style="--i:' + i + '"><span class="n" style="background:' + a.bg + '">' + (i + 1) + '</span><span style="font-size:15px;line-height:1.45">' + esc(t) + "</span></div>").join("");
+  $("tipName").textContent = tx.name; $("tipWho").textContent = tx.who;
+  $("tipList").innerHTML = (TIPS[lang][k] || []).map((tip, i) => '<div class="tip-row" style="--i:' + i + '"><span class="n" style="background:' + a.bg + '">' + (i + 1) + '</span><span style="font-size:15px;line-height:1.45">' + esc(tip) + "</span></div>").join("");
 }
 
 /* ---------- Install as an app (PWA) ---------- */
@@ -884,12 +1114,14 @@ if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").cat
 const standalone = ["standalone", "fullscreen", "minimal-ui", "window-controls-overlay"]
   .some(m => matchMedia("(display-mode: " + m + ")").matches) || navigator.standalone === true;
 if (standalone) store.set("ww_installed", true);           // remember it for the browser tab too
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
 const hideInstall = () => $("installBar").classList.add("hidden");
 const installBlocked = () => standalone || store.get("ww_installed", false) || store.get("ww_install_off", false);
+function setInstallHint() { $("installHint").textContent = t(isIOS ? "install_ios" : "install_hint"); }
 let deferredPrompt = null;
 window.addEventListener("beforeinstallprompt", e => {        // Android and desktop Chrome / Edge
   e.preventDefault(); deferredPrompt = e;
-  if (!installBlocked()) $("installBar").classList.remove("hidden");
+  if (!installBlocked()) { setInstallHint(); $("installBar").classList.remove("hidden"); }
 });
 $("installBtn").onclick = async () => {
   if (!deferredPrompt) return;
@@ -904,13 +1136,13 @@ window.addEventListener("appinstalled", () => { store.set("ww_installed", true);
 if (navigator.getInstalledRelatedApps) {
   navigator.getInstalledRelatedApps().then(apps => { if (apps && apps.length) { store.set("ww_installed", true); hideInstall(); } }).catch(() => {});
 }
-if (/iphone|ipad|ipod/i.test(navigator.userAgent) && !installBlocked()) {
+if (isIOS && !installBlocked()) {
   // iPhone has no install button for websites: show the Safari steps instead.
-  $("installHint").textContent = "Tap Share, then “Add to Home Screen”.";
-  $("installBtn").classList.add("hidden"); $("installBar").classList.remove("hidden");
+  setInstallHint(); $("installBtn").classList.add("hidden"); $("installBar").classList.remove("hidden");
 }
 
 /* ---------- Start ---------- */
+applyLang();
 $("startBtn").onclick = () => { store.set("ww_seen", true); locate(); show("home", "in-up"); };
 if (store.get("ww_loc", false)) locate(ok => { if (ok && current === "home") renderNear(); });
 show(store.get("ww_seen", false) ? "home" : "welcome", "in-fade");
