@@ -72,6 +72,15 @@ YOLO_MAP = {
     "sparrow": "other", "mongoose": "other", "rabbit": "other", "duck": "other",
     # "wild_dog" is left out on purpose: it looks like a stray dog but is a different case.
 }
+
+# With --yolo-rest-other, every other YOLO class goes into "other", EXCEPT animals that
+# look like one of our 5 (they would confuse the AI). Matched as parts of the class name.
+LOOKALIKE_WORDS = ["dog", "wolf", "fox", "jackal", "coyote", "hyena", "dingo",
+                   "pig", "hog", "boar", "warthog",
+                   "lizard", "iguana", "gecko", "monitor", "komodo", "crocodile", "alligator", "gharial",
+                   "snake", "python", "cobra", "viper", "rattle", "mamba", "adder", "boa",
+                   "monkey", "ape", "gorilla", "chimp", "orangutan", "baboon", "macaque", "lemur", "gibbon",
+                   "ipynb", "checkpoint"]
 Image.MAX_IMAGE_PIXELS = 60_000_000
 
 
@@ -139,7 +148,7 @@ def yolo_label_for(img: Path):
     return cand if cand.exists() else None
 
 
-def yolo_candidates(folder: Path, mapping: dict, stats):
+def yolo_candidates(folder: Path, mapping: dict, stats, rest_other=False):
     """Yield (our class, source name, crop) for every mapped box in a YOLO dataset."""
     yamls = sorted(folder.rglob("data.yaml"), key=lambda p: len(p.parts))
     if not yamls:
@@ -151,6 +160,17 @@ def yolo_candidates(folder: Path, mapping: dict, stats):
         return
     print(f"  YOLO dataset {folder}: {len(names)} classes in {yamls[0].name}")
     targets = {i: mapping.get(norm_name(n)) for i, n in enumerate(names)}
+    if rest_other:
+        added, kept_out = [], []
+        for i, n in enumerate(names):
+            if targets.get(i):
+                continue
+            if any(w in norm_name(n) for w in LOOKALIKE_WORDS):
+                kept_out.append(n)
+            else:
+                targets[i] = "other"; added.append(n)
+        print(f"    added to other ({len(added)}): {', '.join(added)}")
+        print(f"    kept out as look-alikes ({len(kept_out)}): {', '.join(kept_out)}")
     targets = {i: c for i, c in targets.items() if c and c != "skip"}
     used = sorted({names[i] for i in targets}, key=str.lower)
     print(f"    using {len(used)}: {', '.join(used)}")
@@ -257,12 +277,16 @@ def main():
                    help="add every image under FOLDER (subfolders included) to CLASS")
     p.add_argument("--yolo", action="append", default=[], metavar="FOLDER",
                    help="YOLO dataset folder (with data.yaml); boxes are cut out and mapped with YOLO_MAP")
+    p.add_argument("--yolo-rest-other", action="store_true",
+                   help="put every other YOLO class into 'other' (look-alikes of our 5 animals are kept out)")
     p.add_argument("--yolo-map", action="append", default=[], metavar="NAME=CLASS",
                    help="change the class mapping for --yolo, e.g. lizard=other or wild_dog=skip")
     p.add_argument("--inat", nargs=2, action="append", default=[], metavar=("CLASS", "CSV"),
                    help="download photos listed in an iNaturalist export CSV into CLASS")
     p.add_argument("--out", default="dataset", help="output folder (default: dataset)")
     p.add_argument("--max", type=int, default=300, help="max photos per class (default: 300)")
+    p.add_argument("--max-other", type=int, default=None,
+                   help="max photos for 'other' (default: same as --max). Bigger = more variety of 'not our animals'")
     p.add_argument("--min-warn", type=int, default=150, help="warn if a class has fewer (default: 150)")
     p.add_argument("--inat-limit", type=int, default=400, help="max downloads per CSV (default: 400)")
     p.add_argument("--inat-delay", type=float, default=0.3, help="seconds between downloads")
@@ -273,6 +297,7 @@ def main():
     a = p.parse_args()
 
     random.seed(a.seed)
+    cap = lambda c: (a.max_other or a.max) if c == "other" else a.max
     if a.zip_only:
         out = Path(a.out)
         if not out.is_dir():
@@ -327,7 +352,7 @@ def main():
             print(f"  {cls:<9} <- {len(files):>5} photos already downloaded in {cache}")
         else:
             cache.mkdir(exist_ok=True)
-            for i, (_, data) in enumerate(download_inat(csv_path, min(a.inat_limit, a.max + 20), a.inat_delay)):
+            for i, (_, data) in enumerate(download_inat(csv_path, min(a.inat_limit, cap(cls) + 20), a.inat_delay)):
                 (cache / f"inat_{i:04d}.jpg").write_bytes(data)
             files = sorted(cache.glob("*.jpg"))
             print(f"  {cls:<9} <- {len(files):>5} photos downloaded into {cache}")
@@ -340,7 +365,7 @@ def main():
             print(f"  ! folder not found, skipped: {folder}")
             continue
         found = defaultdict(int)
-        for cls, src, item in yolo_candidates(folder, mapping, stats):
+        for cls, src, item in yolo_candidates(folder, mapping, stats, a.yolo_rest_other):
             candidates[cls].append((src, item))
             found[cls] += 1
         for cls in CLASSES:
@@ -360,7 +385,7 @@ def main():
 
     def consider(cls, item) -> bool:
         """Check one photo and save it. Returns False once the class is full."""
-        if kept[cls] >= a.max:
+        if kept[cls] >= cap(cls):
             return False
         im = load_image(item)
         if im is None:
@@ -430,7 +455,7 @@ def main():
             print(f"      from: {mix_txt}")
         for reason, k in stats[cls].items():
             print(f"      skipped {k} ({reason})")
-    counts = [n for _, n in summary]
+    counts = [n for c, n in summary if not (a.max_other and c == "other")]
     if counts and min(counts) and max(counts) / min(counts) > 2:
         print("\n  Note: the biggest class has over twice the photos of the smallest.")
         print("  Lower --max to the smallest count for a fairer model.")

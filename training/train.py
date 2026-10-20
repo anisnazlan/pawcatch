@@ -2,7 +2,7 @@
 
 Expected dataset layout (one folder per class, any image names):
     dataset/
-      monkey/  dog/  snake/  wild_boar/  other/
+      monkey/  dog/  snake/  wild_boar/  monitor_lizard/  other/
 
 Run (Google Colab with a GPU is easiest):
     pip install tensorflow scikit-learn matplotlib
@@ -31,11 +31,25 @@ def main(data_dir: str, epochs: int, fine_tune_epochs: int, batch: int, weights:
     out.mkdir(exist_ok=True)
 
     train_ds = tf.keras.utils.image_dataset_from_directory(
-        data_dir, validation_split=0.2, subset="training", seed=42, image_size=IMG, batch_size=batch)
+        data_dir, validation_split=0.2, subset="training", seed=42, image_size=IMG, batch_size=batch,
+        label_mode="categorical")
     val_ds = tf.keras.utils.image_dataset_from_directory(
-        data_dir, validation_split=0.2, subset="validation", seed=42, image_size=IMG, batch_size=batch)
+        data_dir, validation_split=0.2, subset="validation", seed=42, image_size=IMG, batch_size=batch,
+        label_mode="categorical")
     labels = train_ds.class_names
     print("Classes:", labels)
+
+    # Balanced class weights: "other" can be bigger (more variety) without the AI
+    # learning to answer "other" for real animals.
+    exts = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif"}
+    counts = [sum(1 for f in (Path(data_dir) / c).iterdir() if f.suffix.lower() in exts) for c in labels]
+    total = sum(counts)
+    class_weight = {i: total / (len(labels) * n) for i, n in enumerate(counts) if n}
+    print("Photos per class:", dict(zip(labels, counts)))
+    print("Class weights:", {labels[i]: round(w, 2) for i, w in class_weight.items()})
+
+    # Label smoothing keeps confidence honest, so a "below 70%" rule in the app is meaningful.
+    loss = tf.keras.losses.CategoricalCrossentropy(label_smoothing=0.1)
 
     autotune = tf.data.AUTOTUNE
     train_ds = train_ds.prefetch(autotune)
@@ -61,18 +75,17 @@ def main(data_dir: str, epochs: int, fine_tune_epochs: int, batch: int, weights:
     outputs = tf.keras.layers.Dense(len(labels), activation="softmax")(x)
     model = tf.keras.Model(inputs, outputs)
 
-    model.compile(optimizer=tf.keras.optimizers.Adam(1e-3),
-                  loss="sparse_categorical_crossentropy", metrics=["accuracy"])
+    model.compile(optimizer=tf.keras.optimizers.Adam(1e-3), loss=loss, metrics=["accuracy"])
     stop = tf.keras.callbacks.EarlyStopping(patience=3, restore_best_weights=True)
-    model.fit(train_ds, validation_data=val_ds, epochs=epochs, callbacks=[stop])
+    model.fit(train_ds, validation_data=val_ds, epochs=epochs, callbacks=[stop], class_weight=class_weight)
 
     if fine_tune_epochs > 0:
         base.trainable = True
         for layer in base.layers[:-30]:
             layer.trainable = False
-        model.compile(optimizer=tf.keras.optimizers.Adam(1e-5),
-                      loss="sparse_categorical_crossentropy", metrics=["accuracy"])
-        model.fit(train_ds, validation_data=val_ds, epochs=fine_tune_epochs, callbacks=[stop])
+        model.compile(optimizer=tf.keras.optimizers.Adam(1e-5), loss=loss, metrics=["accuracy"])
+        model.fit(train_ds, validation_data=val_ds, epochs=fine_tune_epochs, callbacks=[stop],
+                  class_weight=class_weight)
 
     model.save(out / "animal_model.keras")
     (out / "labels.json").write_text(json.dumps(labels))
@@ -86,7 +99,7 @@ def main(data_dir: str, epochs: int, fine_tune_epochs: int, batch: int, weights:
     from sklearn.metrics import classification_report, confusion_matrix
     y_true, y_pred = [], []
     for xb, yb in val_ds:
-        y_true.extend(yb.numpy())
+        y_true.extend(np.argmax(yb.numpy(), axis=1))
         y_pred.extend(np.argmax(model.predict(xb, verbose=0), axis=1))
     report = classification_report(y_true, y_pred, target_names=labels, digits=3, zero_division=0)
     print(report)
