@@ -75,7 +75,10 @@ def main(n: int, reset: bool, if_empty: bool, seed: int):
         status = pick(STATUS_WEIGHTS) if days_ago < 14 else "resolved"
         resolved_at = None
         if status == "resolved":
-            hours_to_fix = random.uniform(2, 12) if incident == "attack" else random.uniform(6, 96)
+            # Realistic sample times per agency (hours): Bomba is fast, the council is slowest.
+            low, high = {"emergency": (1, 6), "township": (4, 30), "perhilitan": (8, 40), "council": (20, 70)}[
+                rules.agency_for(animal, incident)]
+            hours_to_fix = random.uniform(low, high)
             resolved_at = (created + timedelta(hours=hours_to_fix)).isoformat(timespec="seconds")
         rows.append((
             created.isoformat(timespec="seconds"), round(lat, 6), round(lng, 6), animal, incident,

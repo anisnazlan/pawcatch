@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WildWatch Elmina · Wildlife Dashboard</title>
+<link rel="icon" href="/static/icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;700&display=swap">
+<link rel="stylesheet" href="/static/vendor/leaflet.css">
+<style>
+  :root {
+    --bg:#E9EAE7; --card:#F6F6F4; --inset:#ECEDEA; --ink:#3F4441; --title:#5A5F5C; --soft:#5A5F5C; --line:#CFD2CE;
+    --green:#2E7A55; --green-soft:#DDEBE3; --grey:#5A5F5C; --red:#B3271C; --red-dot:#C93A2E; --amber:#E2B93B;
+    --shadow:8px 8px 20px rgba(60,66,62,.16), -6px -6px 16px rgba(255,255,255,.9);
+    --font:'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  }
+  * { box-sizing:border-box; }
+  html, body { margin:0; background:var(--bg); }
+  body { font-family:var(--font); color:var(--ink); }
+  button, select, input { font-family:inherit; color:inherit; }
+  .hidden { display:none !important; }
+  a { color:var(--green); }
+
+  @keyframes rise { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:none; } }
+  @keyframes pop { 0% { transform:scale(.6); opacity:0; } 70% { transform:scale(1.08); opacity:1; } 100% { transform:scale(1); } }
+  @keyframes slideIn { from { opacity:0; transform:translateY(-12px); } to { opacity:1; transform:none; } }
+  @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:.35; } }
+  .rise > * { animation:rise .5s cubic-bezier(.2,.8,.2,1) both; animation-delay:calc(var(--i,0) * 60ms); }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration:.01ms !important; animation-delay:0ms !important; transition-duration:.01ms !important; } }
+
+  /* ---------- Login ---------- */
+  .login-wrap { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
+  .login { width:100%; max-width:400px; background:var(--card); border-radius:36px; padding:36px 32px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:16px; animation:rise .5s ease both; }
+  .logo-big { width:72px; height:72px; border-radius:36px; background:var(--green); display:flex; align-items:center; justify-content:center; box-shadow:4px 6px 14px rgba(46,122,85,.35); align-self:center; }
+  .field { height:52px; padding:0 18px; border:none; border-radius:26px; background:#E2E3E0; box-shadow:inset 3px 3px 6px rgba(60,66,62,.14), inset -3px -3px 6px rgba(255,255,255,.8); font-size:16px; width:100%; }
+  .field:focus { outline:2px solid var(--green); outline-offset:2px; }
+  .btn { height:52px; border:none; border-radius:26px; background:var(--green); color:#F6F6F4; font-weight:700; font-size:16px; cursor:pointer; box-shadow:3px 4px 10px rgba(46,122,85,.35); transition:transform .12s; }
+  .btn:active { transform:scale(.97); }
+  .err { color:var(--red); font-size:14px; min-height:1.2em; margin:0; text-align:center; }
+
+  /* ---------- Layout ---------- */
+  .shell { max-width:1440px; margin:0 auto; padding:24px; display:flex; gap:24px; align-items:flex-start; }
+  .side { position:sticky; top:24px; width:88px; flex-shrink:0; background:var(--card); border-radius:44px; padding:16px 0 22px; display:flex; flex-direction:column; align-items:center; gap:14px; box-shadow:var(--shadow); }
+  .side .logo { width:64px; height:64px; border-radius:32px; background:var(--green); display:flex; align-items:center; justify-content:center; box-shadow:4px 6px 12px rgba(46,122,85,.35); margin-bottom:6px; }
+  .side button, .side a { width:52px; height:52px; border-radius:16px; border:none; background:none; display:flex; align-items:center; justify-content:center; cursor:pointer; color:#5E6461; transition:background .15s, color .15s, transform .12s; }
+  .side button:hover, .side a:hover { background:#E4E6E2; }
+  .side button:active, .side a:active { transform:scale(.94); }
+  .side .on { background:var(--green-soft); color:var(--green); }
+  .side .lbl { width:56px; border-top:1px solid var(--line); padding-top:10px; text-align:center; font-size:11px; letter-spacing:2px; color:#6A706C; }
+  .side .rule { width:56px; border-top:1px solid var(--line); }
+  .main { flex:1; min-width:0; display:flex; flex-direction:column; gap:22px; }
+  @media (max-width:820px) {
+    .shell { flex-direction:column; padding:14px; }
+    .side { position:static; width:100%; flex-direction:row; flex-wrap:wrap; justify-content:center; border-radius:28px; padding:10px; }
+    .side .logo { width:48px; height:48px; margin:0; }
+    .side .lbl, .side .rule { display:none; }
+  }
+
+  /* ---------- Header ---------- */
+  .head { display:flex; flex-wrap:wrap; justify-content:space-between; gap:16px; align-items:flex-start; }
+  .head h1 { margin:0; font-weight:400; font-size:44px; line-height:1.05; color:var(--title); letter-spacing:-.5px; }
+  .head p { margin:6px 0 0; font-size:16px; color:var(--ink); }
+  .live { display:inline-flex; align-items:center; gap:8px; margin-top:8px; font-size:13px; color:var(--soft); }
+  .live i { width:8px; height:8px; border-radius:4px; background:var(--green); animation:blink 2s infinite; }
+  .live.warn i { background:var(--red-dot); }
+  .controls { display:flex; flex-direction:column; align-items:flex-end; gap:12px; }
+  .seg { display:flex; gap:4px; padding:4px; border-radius:22px; background:#E2E3E0; box-shadow:inset 3px 3px 6px rgba(60,66,62,.14), inset -3px -3px 6px rgba(255,255,255,.8); flex-wrap:wrap; }
+  .seg button { border:none; background:none; height:34px; padding:0 14px; border-radius:17px; font-size:13px; font-weight:600; cursor:pointer; color:var(--ink); transition:background .15s, color .15s; }
+  .seg button.on { background:var(--card); box-shadow:2px 2px 6px rgba(60,66,62,.18); color:var(--green); }
+  .pills { display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; align-items:center; }
+  .pill { height:40px; padding:0 20px; border-radius:20px; border:none; background:var(--grey); color:#F6F6F4; font-weight:700; font-size:14px; cursor:pointer; box-shadow:3px 4px 8px rgba(60,66,62,.25); transition:background .15s, transform .12s; }
+  .pill.on { background:var(--green); box-shadow:3px 4px 8px rgba(46,122,85,.35); }
+  .pill:active { transform:scale(.96); }
+  select.pick { height:40px; padding:0 14px; border-radius:20px; border:none; background:var(--card); box-shadow:3px 4px 8px rgba(60,66,62,.18); font-size:14px; font-weight:600; cursor:pointer; }
+
+  /* ---------- Cards ---------- */
+  .kpis { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:22px; }
+  .kpi { background:var(--card); border-radius:26px; padding:18px 22px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:10px; }
+  .kpi .top { display:flex; justify-content:space-between; gap:8px; align-items:center; }
+  .kpi .lbl { font-size:12px; letter-spacing:2.5px; text-transform:uppercase; color:var(--title); }
+  .kpi .delta { font-size:12px; font-weight:700; min-height:15px; }
+  .kpi .row { display:flex; justify-content:space-between; align-items:flex-end; gap:10px; }
+  .kpi .val { font-size:38px; font-weight:500; color:var(--green); line-height:1; }
+  .kpi .val small { font-size:20px; }
+  .panels { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:22px; }
+  .span2 { grid-column:span 2; }
+  @media (max-width:1100px) { .panels { grid-template-columns:repeat(2, minmax(0, 1fr)); } }
+  @media (max-width:720px) { .panels { grid-template-columns:1fr; } .span2 { grid-column:auto; } }
+  .panel { background:var(--card); border-radius:30px; padding:16px 18px 18px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:12px; min-width:0; scroll-margin-top:24px; }
+  .panel h2 { margin:0; text-align:center; font-size:14px; font-weight:400; color:var(--ink); }
+  .panel h2 b { font-weight:700; }
+  .panel .note { margin:0; font-size:12px; color:var(--soft); text-align:center; }
+  #map { height:340px; border-radius:22px; }
+  .vbars { display:flex; align-items:flex-end; justify-content:space-around; gap:6px; height:232px; }
+  .vbar { flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .vbar .n { font-size:13px; font-weight:700; }
+  .vbar .d { font-size:11px; font-weight:700; white-space:nowrap; min-height:14px; }
+  .vbar .b { width:26px; background:var(--grey); transition:height .7s cubic-bezier(.2,.8,.2,1); border-radius:4px 4px 0 0; }
+  .vbar .b.top { background:var(--green); }
+  .vbar .l { font-size:12px; color:var(--soft); text-align:center; line-height:1.2; min-height:30px; }
+  .hours { display:flex; align-items:flex-end; gap:3px; height:160px; }
+  .hours div { flex:1; background:#C9D2CC; border-radius:3px 3px 0 0; transition:height .7s cubic-bezier(.2,.8,.2,1); }
+  .hours div.peak { background:var(--green); }
+  .axis { display:flex; justify-content:space-between; font-size:11px; color:var(--soft); }
+  .rank { display:flex; flex-direction:column; gap:12px; border-left:1.5px solid var(--ink); padding-left:10px; }
+  .rank button { all:unset; display:flex; flex-direction:column; gap:3px; cursor:pointer; border-radius:8px; }
+  .rank button:focus-visible { outline:2px solid var(--green); outline-offset:3px; }
+  .rank .t { font-size:12px; }
+  .rank .b { height:14px; background:var(--grey); transition:width .7s cubic-bezier(.2,.8,.2,1); }
+  .rank .b.top { background:var(--green); }
+  .rank .s { font-size:12px; color:var(--soft); line-height:1.35; }
+  .agency { display:grid; grid-template-columns:110px minmax(0, 1fr) 78px; gap:10px; align-items:center; }
+  .agency .nm { font-size:13px; text-align:right; }
+  .agency .track { position:relative; height:18px; }
+  .agency .fill { height:18px; transition:width .7s cubic-bezier(.2,.8,.2,1); }
+  .agency .target { position:absolute; top:-4px; width:2px; height:26px; background:#1D2B22; }
+  .agency .v { display:flex; flex-direction:column; line-height:1.15; }
+  .agency .v b { font-size:13px; } .agency .v span { font-size:11px; font-weight:700; }
+
+  /* ---------- Cases ---------- */
+  .cases { display:flex; flex-direction:column; gap:8px; max-height:520px; overflow-y:auto; padding-right:4px; }
+  .case { display:grid; grid-template-columns:12px minmax(0, 1fr) auto auto; gap:12px; align-items:center; padding:10px 12px; border-radius:16px; background:var(--inset); }
+  .case.new { animation:slideIn .45s ease both; box-shadow:0 0 0 2px var(--green) inset; }
+  .case .dot { width:12px; height:12px; border-radius:6px; }
+  .case .t { font-size:13px; } .case .m { font-size:12px; color:var(--soft); margin-top:2px; }
+  .case .sample { font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--soft); border:1px solid var(--line); border-radius:6px; padding:1px 5px; margin-left:6px; }
+  .case select { height:34px; border:none; border-radius:17px; padding:0 10px; background:var(--card); font-size:12px; font-weight:600; cursor:pointer; box-shadow:2px 2px 5px rgba(60,66,62,.15); }
+  .case .fwd { height:34px; padding:0 14px; border-radius:17px; border:none; background:var(--green); color:#F6F6F4; font-weight:700; font-size:12px; cursor:pointer; }
+  .case .thumb { width:40px; height:40px; border-radius:10px; object-fit:cover; }
+  @media (max-width:600px) { .case { grid-template-columns:12px minmax(0, 1fr); } .case select, .case .fwd { grid-column:2; justify-self:start; } }
+  .empty { text-align:center; color:var(--soft); font-size:14px; padding:20px; }
+
+  /* ---------- Forward menu + toast ---------- */
+  .overlay { position:fixed; inset:0; background:rgba(29,43,34,.35); display:flex; align-items:center; justify-content:center; z-index:1000; padding:20px; animation:rise .2s ease; }
+  .sheet { width:100%; max-width:420px; background:var(--card); border-radius:30px; padding:24px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:12px; }
+  .sheet h3 { margin:0; font-size:20px; font-weight:700; }
+  .sheet pre { margin:0; white-space:pre-wrap; font-family:var(--font); font-size:13px; background:var(--inset); border-radius:16px; padding:12px; max-height:200px; overflow:auto; }
+  .opt { display:flex; align-items:center; justify-content:center; gap:8px; height:48px; border-radius:24px; text-decoration:none; font-weight:700; font-size:15px; border:none; cursor:pointer; }
+  .opt.wa { background:#2E7A55; color:#fff; } .opt.mail { background:var(--grey); color:#fff; } .opt.copy { background:var(--inset); color:var(--ink); }
+  .toast { position:fixed; top:20px; left:50%; transform:translateX(-50%); background:#1D2B22; color:#F6F6F4; padding:14px 20px; border-radius:20px; font-weight:600; font-size:14px; z-index:1100; box-shadow:0 10px 30px rgba(0,0,0,.25); animation:slideIn .35s ease both; display:flex; gap:10px; align-items:center; }
+
+  @media print {
+    .side, .controls, .fwd, .case select { display:none !important; }
+    .shell { padding:0; } .panel, .kpi { box-shadow:none; border:1px solid #ccc; }
+    body, html { background:#fff; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ======================= LOGIN ======================= -->
+<div class="login-wrap" id="loginView">
+  <form class="login" id="loginForm">
+    <div class="logo-big"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#F6F6F4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="15" r="4"/><circle cx="6" cy="9" r="2"/><circle cx="10" cy="5" r="2"/><circle cx="14" cy="5" r="2"/><circle cx="18" cy="9" r="2"/></svg></div>
+    <div style="text-align:center">
+      <h1 style="margin:0;font-weight:400;font-size:30px;color:var(--title)">Wildlife Dashboard</h1>
+      <p style="margin:6px 0 0;font-size:14px;color:var(--soft)">Elmina Township Management</p>
+    </div>
+    <label for="key" style="font-size:14px;font-weight:700">Admin key</label>
+    <input class="field" id="key" type="password" autocomplete="current-password" placeholder="Enter your admin key">
+    <button class="btn" type="submit" id="loginBtn">Sign in</button>
+    <p class="err" id="loginErr" role="alert"></p>
+    <p style="margin:0;text-align:center;font-size:13px"><a href="/app">Open the resident app</a></p>
+  </form>
+</div>
+
+<!-- ======================= DASHBOARD ======================= -->
+<div class="shell hidden" id="appView">
+  <nav class="side" aria-label="Dashboard menu">
+    <div class="logo"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#F6F6F4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="15" r="4"/><circle cx="6" cy="9" r="2"/><circle cx="10" cy="5" r="2"/><circle cx="14" cy="5" r="2"/><circle cx="18" cy="9" r="2"/></svg></div>
+    <button class="on" data-jump="top" aria-label="Overview" title="Overview"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></button>
+    <button data-jump="pMap" aria-label="Live map" title="Live map"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></svg></button>
+    <button data-jump="pCases" aria-label="Open cases" title="Open cases"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M3 14h18M9 9v11"/></svg></button>
+    <span class="lbl">EXPORT</span>
+    <button id="exportBtn" aria-label="Export to Excel" title="Export to Excel"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M9 13l4 5M13 13l-4 5"/></svg></button>
+    <button id="printBtn" aria-label="Print this report" title="Print this report"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7"/></svg></button>
+    <span class="rule"></span>
+    <a href="/app" target="_blank" rel="noopener" aria-label="Open the resident app" title="Open the resident app"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M11 18h2"/></svg></a>
+    <button id="logoutBtn" aria-label="Sign out" title="Sign out"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg></button>
+  </nav>
+
+  <main class="main" id="top">
+    <div class="head">
+      <div>
+        <h1>Wildlife Dashboard</h1>
+        <p>Welcome, <b>Elmina Township Management</b></p>
+        <span class="live" id="live"><i></i><span id="liveTxt">Connecting…</span></span>
+      </div>
+      <div class="controls">
+        <div class="seg" role="group" aria-label="Time period" id="rangeSeg">
+          <button data-range="7">7 days</button><button data-range="30" class="on">30 days</button><button data-range="90">90 days</button><button data-range="0">All time</button>
+        </div>
+        <div class="pills">
+          <label for="animalPick" class="hidden">Animal</label>
+          <select class="pick" id="animalPick" aria-label="Filter by animal"></select>
+          <div class="pills" role="group" aria-label="Which reports" id="viewSeg">
+            <button class="pill on" data-view="all">All reports</button>
+            <button class="pill" data-view="urgent">Urgent</button>
+            <button class="pill" data-view="open">Open</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="kpis rise" id="kpis"></div>
+
+    <div class="panels rise">
+      <section class="panel span2" id="pMap">
+        <h2><b>Reports</b> | By Area</h2>
+        <div id="map" role="region" aria-label="Map of reports"></div>
+        <p class="note" id="mapNote"></p>
+      </section>
+
+      <section class="panel">
+        <h2><b>Hotspots</b> | Top 5, fix these first</h2>
+        <div class="rank" id="hotspots"></div>
+        <p class="note">Tap a hotspot to zoom the map to it.</p>
+      </section>
+
+      <section class="panel">
+        <h2><b>Reports</b> | By Animal</h2>
+        <div class="vbars" id="byAnimal" role="img"></div>
+      </section>
+
+      <section class="panel">
+        <h2><b>Reports</b> | By Situation</h2>
+        <div class="vbars" id="bySituation" role="img"></div>
+      </section>
+
+      <section class="panel">
+        <h2><b>Reports</b> | By Hour of Day</h2>
+        <div class="hours" id="byHour" role="img"></div>
+        <div class="axis"><span>12 am</span><span>6 am</span><span>12 pm</span><span>6 pm</span><span>11 pm</span></div>
+        <p class="note" id="peakNote"></p>
+      </section>
+
+      <section class="panel">
+        <h2><b>Response time</b> | By Agency</h2>
+        <div id="agencies" style="display:flex;flex-direction:column;gap:16px"></div>
+        <p class="note">Bar = average time to resolve. Black line = target.</p>
+      </section>
+
+      <section class="panel span2" id="pCases">
+        <h2><b>Open cases</b> | Most urgent first</h2>
+        <div class="cases" id="cases"></div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<script src="/static/vendor/leaflet.js"></script>
+<script src="/static/vendor/leaflet-heat.js"></script>
+<script>
+"use strict";
+const ANIMALS = { monkey: "Monkey", dog: "Stray dog", snake: "Snake", wild_boar: "Wild boar", monitor_lizard: "Monitor lizard", other: "Other" };
+const INCIDENTS = { sighting: "Sighting", bins: "Rummaging bins", entered_home: "Entered home", damage: "Damage", attack: "Attack or bite" };
+const AGENCIES = { emergency: "Fire and Rescue", perhilitan: "PERHILITAN", council: "MBSA", township: "Township" };
+const AGENCY_FULL = { emergency: "Fire and Rescue (999)", perhilitan: "PERHILITAN (Wildlife Department)", council: "MBSA (Shah Alam City Council)", township: "Elmina Township Management" };
+const TARGET_H = { emergency: 4, perhilitan: 24, council: 48, township: 24 };   // target hours to resolve
+const STATUSES = { received: "Received", assigned: "Assigned", in_progress: "In progress", resolved: "Resolved" };
+const URG_ORDER = { high: 0, medium: 1, low: 2 };
+const DOT = { high: "#C93A2E", medium: "#E2B93B", low: "#8FC08D" };
+const MARKER = { monkey: "#E2B93B", dog: "#6E9FD6", snake: "#5E9E6E", wild_boar: "#D9895F", monitor_lizard: "#9C86D9", other: "#D97A9E" };
+const GOOD = "#2E7A55", BAD = "#B3271C";
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const DAY = 86400000;
+let KEY = null, reports = [], stats = null, range = 30, view = "all", animal = "", lastMaxId = 0, firstLoad = true;
+let map, heat, liveLayer, hsLayer, timer = null;
+try { KEY = sessionStorage.getItem("wwKey"); } catch {}
+
+/* ---------- A soft chime for new reports (made in code) ---------- */
+let actx = null;
+function chime() {
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    if (actx.state === "suspended") actx.resume();
+    [[880, 0], [1174.7, .14]].forEach(([f, s]) => {
+      const o = actx.createOscillator(), g = actx.createGain(), t = actx.currentTime + s;
+      o.frequency.value = f; g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.08, t + .015); g.gain.exponentialRampToValueAtTime(.0001, t + .45);
+      o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t + .5);
+    });
+  } catch {}
+}
+function toast(msg) {
+  const el = document.createElement("div"); el.className = "toast"; el.setAttribute("role", "status"); el.textContent = msg;
+  document.body.appendChild(el); setTimeout(() => el.remove(), 4500);
+}
+
+/* ---------- Login ---------- */
+if (location.protocol === "file:") $("loginErr").textContent = "This page needs the WildWatch server. Run the app (F5) and open http://localhost:8000/dashboard";
+$("loginForm").onsubmit = async e => {
+  e.preventDefault();
+  const k = $("key").value.trim(); $("loginErr").textContent = "";
+  if (!k) return $("loginErr").textContent = "Enter the admin key.";
+  $("loginBtn").disabled = true; $("loginBtn").textContent = "Signing in…";
+  try {
+    const res = await fetch("/api/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key: k }) });
+    if (!res.ok) { $("loginErr").textContent = "Wrong admin key."; return; }
+    KEY = k; try { sessionStorage.setItem("wwKey", k); } catch {}
+    start();
+  } catch { $("loginErr").textContent = "Can’t reach the server. If it was asleep, wait a minute and try again."; }
+  finally { $("loginBtn").disabled = false; $("loginBtn").textContent = "Sign in"; }
+};
+function logout() {
+  KEY = null; try { sessionStorage.removeItem("wwKey"); } catch {}
+  clearInterval(timer); $("appView").classList.add("hidden"); $("loginView").classList.remove("hidden"); $("key").value = "";
+}
+$("logoutBtn").onclick = logout;
+
+async function api(path, opts = {}) {
+  const res = await fetch(path, { ...opts, headers: { ...(opts.headers || {}), "X-Admin-Key": KEY, "Content-Type": "application/json" } });
+  if (res.status === 401) { logout(); throw new Error("auth"); }
+  if (!res.ok) throw new Error("failed");
+  return res.json();
+}
+
+/* ---------- Controls ---------- */
+const animalPick = $("animalPick");
+animalPick.add(new Option("All animals", ""));
+for (const [k, v] of Object.entries(ANIMALS)) animalPick.add(new Option(v, k));
+animalPick.onchange = () => { animal = animalPick.value; render(); };
+$("rangeSeg").onclick = e => { const b = e.target.closest("button"); if (!b) return; range = +b.dataset.range; $("rangeSeg").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b)); render(); };
+$("viewSeg").onclick = e => { const b = e.target.closest("button"); if (!b) return; view = b.dataset.view; $("viewSeg").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b)); render(); };
+document.querySelectorAll("[data-jump]").forEach(b => b.onclick = () => {
+  document.querySelectorAll("[data-jump]").forEach(x => x.classList.toggle("on", x === b));
+  const id = b.dataset.jump;
+  if (id === "top") window.scrollTo({ top: 0, behavior: "smooth" }); else $(id).scrollIntoView({ behavior: "smooth" });
+});
+$("printBtn").onclick = () => window.print();
+
+/* ---------- Filtering ---------- */
+const ts = r => new Date(r.created_at).getTime();
+function inWindow(r, from, to) { const t = ts(r); return t >= from && t < to; }
+function pass(r) {
+  if (animal && r.animal !== animal) return false;
+  if (view === "urgent" && r.urgency !== "high") return false;
+  if (view === "open" && r.status === "resolved") return false;
+  return true;
+}
+function periodRows(offset) {      // offset 0 = this period, 1 = the one before
+  const now = Date.now();
+  if (!range) return offset ? [] : reports.filter(pass);
+  const to = now - offset * range * DAY, from = to - range * DAY;
+  return reports.filter(r => pass(r) && inWindow(r, from, to));
+}
+const hoursToResolve = r => (new Date(r.resolved_at) - new Date(r.created_at)) / 3600000;
+const avgResolve = rows => { const h = rows.filter(r => r.resolved_at).map(hoursToResolve); return h.length ? h.reduce((a, b) => a + b, 0) / h.length : null; };
+
+/* ---------- Small pieces ---------- */
+function delta(now, before, lowerIsBetter, unit) {
+  if (!range || before === null || now === null) return { txt: range ? "" : "all time", c: "#5A5F5C" };
+  if (!before) return { txt: now ? "new this period" : "", c: "#5A5F5C" };
+  const pct = (now - before) / before * 100;
+  if (Math.abs(pct) < 0.5) return { txt: "same as before", c: "#5A5F5C" };
+  const up = pct > 0, good = lowerIsBetter ? !up : up;
+  return { txt: (up ? "▲ " : "▼ ") + Math.abs(pct).toFixed(1) + "% vs previous " + range + " days", c: good ? GOOD : BAD };
+}
+function spark(rows, days) {
+  days = Math.min(days || 30, 30);
+  const counts = Array(days).fill(0), start = Date.now() - days * DAY;
+  rows.forEach(r => { const i = Math.floor((ts(r) - start) / DAY); if (i >= 0 && i < days) counts[i]++; });
+  const max = Math.max(1, ...counts);
+  return counts.map((c, i) => (2 + i * 92 / Math.max(1, days - 1)).toFixed(1) + "," + (31 - c / max * 28).toFixed(1)).join(" ");
+}
+function countUp(el, to, decimals, suffix) {
+  if (!firstLoad) { el.innerHTML = to === null ? "–" : to.toFixed(decimals) + (suffix || ""); return; }
+  if (to === null) { el.textContent = "–"; return; }
+  const t0 = performance.now(), dur = 900;
+  const step = t => { const p = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - p, 3); el.innerHTML = (to * e).toFixed(decimals) + (suffix || ""); if (p < 1) requestAnimationFrame(step); };
+  requestAnimationFrame(step);
+}
+function setDims(box, list) { requestAnimationFrame(() => requestAnimationFrame(() => list.forEach(([el, prop, v]) => el.style[prop] = v))); }
+
+/* ---------- Render everything ---------- */
+function render() {
+  const cur = periodRows(0), prev = periodRows(1);
+  renderKpis(cur, prev);
+  renderMap(cur);
+  renderAnimals(cur, prev);
+  renderSituations(cur);
+  renderHours(cur);
+  renderAgencies(cur);
+  renderCases();
+  if (stats) renderHotspots();
+  firstLoad = false;
+}
+
+function renderKpis(cur, prev) {
+  const now = new Date(), monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+  const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).getTime();
+  const sameDayLastMonth = lastMonthStart + (Date.now() - monthStart);
+  const base = reports.filter(r => !animal || r.animal === animal);
+  const month = base.filter(r => ts(r) >= monthStart).length;
+  const lastMonth = base.filter(r => ts(r) >= lastMonthStart && ts(r) < Math.min(sameDayLastMonth, monthStart)).length;
+  const urgentOpen = base.filter(r => r.urgency === "high" && r.status !== "resolved");
+  const ar = avgResolve(cur), arPrev = avgResolve(prev);
+  const dMonth = lastMonth ? (() => { const p = (month - lastMonth) / lastMonth * 100; return { txt: (p >= 0 ? "▲ " : "▼ ") + Math.abs(p).toFixed(1) + "% vs last month", c: p > 0 ? BAD : GOOD }; })() : { txt: "", c: "#5A5F5C" };
+  const cards = [
+    { lbl: "Reports", val: cur.length, dec: 0, d: delta(cur.length, prev.length, true), sp: spark(cur, range) },
+    { lbl: "This month", val: month, dec: 0, d: dMonth, sp: spark(base.filter(r => ts(r) >= monthStart), 30) },
+    { lbl: "Urgent open", val: urgentOpen.length, dec: 0, d: { txt: urgentOpen.length ? "need action now" : "none waiting", c: urgentOpen.length ? BAD : GOOD }, sp: spark(base.filter(r => r.urgency === "high"), 30) },
+    { lbl: "Avg resolve", val: ar, dec: 1, suf: "<small> h</small>", d: delta(ar, arPrev, true), sp: spark(cur.filter(r => r.resolved_at), range) }
+  ];
+  const box = $("kpis");
+  if (!box.children.length) box.innerHTML = cards.map((c, i) => '<div class="kpi" style="--i:' + i + '"><span class="lbl"></span><div class="row"><span class="val"></span><svg width="96" height="34" viewBox="0 0 96 34" aria-hidden="true"><polyline fill="none" stroke="#5A5F5C" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"></polyline></svg></div><span class="delta"></span></div>').join("");
+  [...box.children].forEach((el, i) => {
+    const c = cards[i];
+    el.querySelector(".lbl").textContent = c.lbl;
+    const d = el.querySelector(".delta"); d.textContent = c.d.txt; d.style.color = c.d.c;
+    countUp(el.querySelector(".val"), c.val, c.dec, c.suf);
+    el.querySelector("polyline").setAttribute("points", c.sp);
+  });
+}
+
+function initMap() {
+  map = L.map("map", { scrollWheelZoom: false }).setView([3.18, 101.493], 14);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "&copy; OpenStreetMap" }).addTo(map);
+  heat = L.heatLayer([], { radius: 22, blur: 18, maxZoom: 16, gradient: { .3: "#BCD9C7", .6: "#5E9E6E", .85: "#2E7A55", 1: "#1D2B22" } }).addTo(map);
+  hsLayer = L.layerGroup().addTo(map);
+  liveLayer = L.layerGroup().addTo(map);
+}
+function renderMap(rows) {
+  heat.setLatLngs(rows.map(r => [r.lat, r.lng, r.urgency === "high" ? 1 : .6]));
+  liveLayer.clearLayers();
+  rows.filter(r => !r.simulated).forEach(r => {
+    const img = r.photo ? "<br><img src='/uploads/" + esc(r.photo) + "' alt='Photo of the animal' style='width:160px;margin-top:6px;border-radius:8px'>" : "";
+    L.circleMarker([r.lat, r.lng], { radius: 8, color: "#fff", weight: 2, fillColor: MARKER[r.animal] || "#5A5F5C", fillOpacity: 1 })
+      .bindPopup("<b>#" + esc(r.id) + " " + esc(ANIMALS[r.animal]) + "</b><br>" + esc(INCIDENTS[r.incident]) + "<br>" + esc(AGENCY_FULL[r.agency] || r.agency) + img).addTo(liveLayer);
+  });
+  const live = rows.filter(r => !r.simulated).length;
+  $("mapNote").textContent = rows.length + " reports shown on the heatmap · " + live + " live report" + (live === 1 ? "" : "s") + " shown as dots · " + (rows.length - live) + " sample.";
+}
+
+function vbars(boxId, items, label) {
+  const box = $(boxId), max = Math.max(1, ...items.map(i => i.n));
+  box.setAttribute("aria-label", label + ": " + items.map(i => i.name + " " + i.n).join(", "));
+  box.innerHTML = items.map((it, i) => '<div class="vbar"><span class="n">' + it.n + '</span><span class="d" style="color:' + (it.dc || "#5A5F5C") + '">' + esc(it.d || "") + '</span><div class="b' + (i === 0 && it.n ? " top" : "") + '" style="height:0"></div><span class="l">' + esc(it.name) + "</span></div>").join("");
+  const bars = box.querySelectorAll(".b");
+  setDims(box, items.map((it, i) => [bars[i], "height", Math.round(it.n / max * 140) + "px"]));
+}
+function renderAnimals(cur, prev) {
+  const c = {}, p = {};
+  cur.forEach(r => c[r.animal] = (c[r.animal] || 0) + 1);
+  prev.forEach(r => p[r.animal] = (p[r.animal] || 0) + 1);
+  const items = Object.keys(ANIMALS).map(k => {
+    const n = c[k] || 0, b = p[k] || 0;
+    let d = "", dc = "#5A5F5C";
+    if (range && b) { const pct = (n - b) / b * 100; if (Math.abs(pct) >= 0.5) { d = (pct > 0 ? "▲ " : "▼ ") + Math.abs(pct).toFixed(0) + "%"; dc = pct > 0 ? BAD : GOOD; } }
+    return { name: ANIMALS[k], n, d, dc };
+  }).sort((a, b) => b.n - a.n);
+  vbars("byAnimal", items, "Reports by animal");
+}
+function renderSituations(cur) {
+  const c = {}; cur.forEach(r => c[r.incident] = (c[r.incident] || 0) + 1);
+  vbars("bySituation", Object.keys(INCIDENTS).map(k => ({ name: INCIDENTS[k], n: c[k] || 0 })).sort((a, b) => b.n - a.n), "Reports by situation");
+}
+function renderHours(cur) {
+  const h = Array(24).fill(0); cur.forEach(r => h[new Date(r.created_at).getHours()]++);
+  const max = Math.max(1, ...h), sorted = [...h].sort((a, b) => b - a), cut = sorted[5] || 0;
+  const box = $("byHour");
+  box.innerHTML = h.map((n, i) => '<div class="' + (n && n >= cut ? "peak" : "") + '" style="height:0" title="' + (i % 12 || 12) + (i < 12 ? " am" : " pm") + ": " + n + ' reports"></div>').join("");
+  setDims(box, [...box.children].map((el, i) => [el, "height", Math.max(2, Math.round(h[i] / max * 150)) + "px"]));
+  const peaks = h.map((n, i) => [n, i]).filter(([n]) => n && n >= cut).map(([, i]) => i).sort((a, b) => a - b);
+  const fmt = i => (i % 12 || 12) + (i < 12 ? " am" : " pm");
+  box.setAttribute("aria-label", "Reports by hour of day. Busiest hours: " + peaks.map(fmt).join(", "));
+  $("peakNote").textContent = peaks.length ? "Busiest hours: " + peaks.map(fmt).join(", ") + ". Plan bin collection and patrols around them." : "No reports in this period.";
+}
+function renderAgencies(cur) {
+  const box = $("agencies");
+  const rows = Object.keys(AGENCIES).map(k => {
+    const done = cur.filter(r => r.agency === k && r.resolved_at);
+    const avg = done.length ? done.map(hoursToResolve).reduce((a, b) => a + b, 0) / done.length : null;
+    return { k, avg, n: done.length, target: TARGET_H[k] };
+  });
+  const scale = Math.max(60, ...rows.map(r => r.avg || 0), ...rows.map(r => r.target)) * 1.1;
+  box.innerHTML = rows.map(r => {
+    const ok = r.avg !== null && r.avg <= r.target;
+    return '<div class="agency"><span class="nm">' + esc(AGENCIES[r.k]) + '</span><div class="track"><div class="fill" style="width:0;background:' + (ok ? GOOD : "#5A5F5C") + '"></div><div class="target" style="left:' + (r.target / scale * 100).toFixed(1) + '%" title="Target ' + r.target + ' h"></div></div><div class="v"><b>' + (r.avg === null ? "–" : r.avg.toFixed(1) + " h") + '</b><span style="color:' + (r.avg === null ? "#5A5F5C" : ok ? GOOD : BAD) + '">' + (r.avg === null ? "no cases" : ok ? "on target" : "over target") + "</span></div></div>";
+  }).join("");
+  const fills = box.querySelectorAll(".fill");
+  setDims(box, rows.map((r, i) => [fills[i], "width", r.avg === null ? "0" : (r.avg / scale * 100).toFixed(1) + "%"]));
+}
+function renderHotspots() {
+  const hs = stats.hotspots || [], box = $("hotspots"), max = Math.max(1, ...hs.map(h => h.count));
+  hsLayer.clearLayers();
+  box.innerHTML = hs.map((h, i) => '<button data-i="' + i + '"><span class="t">' + (i + 1) + " | " + esc(h.animal_label) + " · " + esc(h.incident_label) + " | <b>" + h.count + '</b></span><div class="b' + (i === 0 ? " top" : "") + '" style="width:0"></div><span class="s">' + esc(h.suggestion) + "</span></button>").join("") || '<p class="empty">No hotspots yet.</p>';
+  hs.forEach((h, i) => L.circle([h.lat, h.lng], { radius: 120, color: "#1D2B22", weight: 1.5, fill: false, dashArray: "4 4" }).bindTooltip("Hotspot " + (i + 1)).addTo(hsLayer));
+  box.querySelectorAll("button").forEach(b => b.onclick = () => { const h = hs[+b.dataset.i]; map.setView([h.lat, h.lng], 17); $("pMap").scrollIntoView({ behavior: "smooth" }); });
+  const bars = box.querySelectorAll(".b");
+  setDims(box, hs.map((h, i) => [bars[i], "width", Math.round(h.count / max * 100) + "%"]));
+}
+
+let seenIds = new Set();
+function renderCases() {
+  const open = reports.filter(r => r.status !== "resolved" && (!animal || r.animal === animal) && (view !== "urgent" || r.urgency === "high"))
+    .sort((a, b) => (URG_ORDER[a.urgency] - URG_ORDER[b.urgency]) || (ts(b) - ts(a))).slice(0, 80);
+  const box = $("cases");
+  if (!open.length) { box.innerHTML = '<p class="empty">No open cases. Nice work.</p>'; return; }
+  box.innerHTML = open.map(r => {
+    const isNew = seenIds.size && !seenIds.has(r.id);
+    const img = r.photo ? '<a href="/uploads/' + esc(r.photo) + '" target="_blank" rel="noopener"><img class="thumb" src="/uploads/' + esc(r.photo) + '" alt="Photo for report ' + esc(r.id) + '"></a>' : "";
+    return '<div class="case' + (isNew ? " new" : "") + '"><span class="dot" style="background:' + DOT[r.urgency] + '" title="' + esc(r.urgency) + ' urgency"></span>' +
+      '<div style="display:flex;gap:10px;align-items:center;min-width:0">' + img + '<div style="min-width:0"><div class="t"><b>#' + esc(r.id) + "</b> | " + esc(ANIMALS[r.animal]) + " · " + esc(INCIDENTS[r.incident]) + (r.simulated ? '<span class="sample">sample</span>' : "") + "</div>" +
+      '<div class="m">' + esc(r.urgency[0].toUpperCase() + r.urgency.slice(1)) + " urgency · " + esc(AGENCY_FULL[r.agency] || r.agency) + " · " + esc(new Date(r.created_at).toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })) + "</div></div></div>" +
+      '<select data-id="' + esc(r.id) + '" aria-label="Status of report ' + esc(r.id) + '">' + Object.entries(STATUSES).map(([k, v]) => "<option value='" + k + "'" + (k === r.status ? " selected" : "") + ">" + v + "</option>").join("") + "</select>" +
+      '<button class="fwd" data-id="' + esc(r.id) + '">Forward</button></div>';
+  }).join("");
+  box.querySelectorAll("select").forEach(s => s.onchange = async () => {
+    s.disabled = true;
+    try { await api("/api/reports/" + s.dataset.id, { method: "PATCH", body: JSON.stringify({ status: s.value }) }); toast("Report #" + s.dataset.id + " marked " + STATUSES[s.value].toLowerCase()); await refresh(); }
+    catch (e) { if (e.message !== "auth") toast("Couldn’t update. Please try again."); s.disabled = false; }
+  });
+  box.querySelectorAll(".fwd").forEach(b => b.onclick = () => forward(reports.find(r => String(r.id) === b.dataset.id)));
+}
+
+/* ---------- Forward a case to the agency ---------- */
+function forward(r) {
+  if (!r) return;
+  const link = "https://www.google.com/maps?q=" + r.lat.toFixed(6) + "," + r.lng.toFixed(6);
+  const photo = r.photo ? location.origin + "/uploads/" + r.photo : null;
+  const text = "WildWatch Elmina · Report #" + r.id + "\n" +
+    "Animal: " + ANIMALS[r.animal] + "\nSituation: " + INCIDENTS[r.incident] + "\nUrgency: " + r.urgency + "\n" +
+    "Reported: " + new Date(r.created_at).toLocaleString() + "\nLocation: " + link + (photo ? "\nPhoto: " + photo : "") +
+    "\n\nPlease attend. Sent by Elmina Township Management.";
+  const ov = document.createElement("div"); ov.className = "overlay";
+  ov.innerHTML = '<div class="sheet" role="dialog" aria-modal="true" aria-labelledby="fwdTitle"><h3 id="fwdTitle">Forward to ' + esc(AGENCY_FULL[r.agency] || "agency") + '</h3>' +
+    '<pre></pre>' +
+    '<a class="opt wa" target="_blank" rel="noopener" href="https://wa.me/?text=' + encodeURIComponent(text) + '">Send by WhatsApp</a>' +
+    '<a class="opt mail" href="mailto:?subject=' + encodeURIComponent("WildWatch report #" + r.id + ": " + ANIMALS[r.animal]) + "&body=" + encodeURIComponent(text) + '">Send by email</a>' +
+    '<button class="opt copy" type="button">Copy text</button><button class="opt copy" type="button" data-close>Close</button></div>';
+  ov.querySelector("pre").textContent = text;
+  ov.querySelector(".copy").onclick = async e => { try { await navigator.clipboard.writeText(text); e.target.textContent = "Copied"; } catch { e.target.textContent = "Couldn’t copy"; } };
+  ov.onclick = e => { if (e.target === ov || e.target.hasAttribute("data-close")) ov.remove(); };
+  document.addEventListener("keydown", function onKey(e) { if (e.key === "Escape") { ov.remove(); document.removeEventListener("keydown", onKey); } });
+  document.body.appendChild(ov); ov.querySelector(".wa").focus();
+}
+
+/* ---------- Excel ---------- */
+$("exportBtn").onclick = async () => {
+  const b = $("exportBtn"); b.disabled = true; b.style.opacity = .5;
+  try {
+    const res = await fetch("/api/export.xlsx", { headers: { "X-Admin-Key": KEY } });
+    if (res.status === 401) return logout();
+    if (!res.ok) throw 0;
+    const name = (res.headers.get("Content-Disposition") || "").match(/filename="(.+)"/)?.[1] || "wildwatch-reports.xlsx";
+    const url = URL.createObjectURL(await res.blob());
+    const a = document.createElement("a"); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000); toast("Excel file downloaded");
+  } catch { toast("Couldn’t create the Excel file. Please try again."); }
+  finally { b.disabled = false; b.style.opacity = 1; }
+};
+
+/* ---------- Live refresh ---------- */
+async function refresh() {
+  try {
+    const [rows, s] = await Promise.all([api("/api/reports"), api("/api/stats")]);
+    const maxId = Math.max(0, ...rows.map(r => r.id));
+    const isNew = lastMaxId && maxId > lastMaxId;
+    if (!seenIds.size) rows.forEach(r => seenIds.add(r.id));
+    reports = rows; stats = s; render();
+    rows.forEach(r => seenIds.add(r.id));
+    $("live").classList.remove("warn");
+    if (isNew) {
+      const r = rows.find(x => x.id === maxId);
+      $("liveTxt").textContent = "New report #" + maxId + " just came in";
+      toast("New report #" + maxId + ": " + (r ? ANIMALS[r.animal] + " · " + INCIDENTS[r.incident] : "")); chime();
+    } else $("liveTxt").textContent = "Live · updated " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + (s.model_ready ? "" : " · AI demo mode");
+    lastMaxId = maxId;
+  } catch (e) { if (e.message !== "auth") { $("live").classList.add("warn"); $("liveTxt").textContent = "Connection lost, retrying…"; } }
+}
+function start() {
+  $("loginView").classList.add("hidden"); $("appView").classList.remove("hidden");
+  if (!map) initMap(); setTimeout(() => map.invalidateSize(), 60);
+  firstLoad = true; refresh(); clearInterval(timer); timer = setInterval(refresh, 10000);
+}
+if (KEY) start();
+</script>
+</body>
+</html>

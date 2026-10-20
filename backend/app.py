@@ -342,6 +342,12 @@ def old_report_page():
 
 @app.get("/dashboard")
 def dashboard_page():
+    return FileResponse(FRONTEND / "admin.html")
+
+
+@app.get("/dashboard-old")
+def old_dashboard_page():
+    # The previous dashboard, kept as a backup.
     return FileResponse(FRONTEND / "dashboard.html")
 
 
