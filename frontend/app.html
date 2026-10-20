@@ -1,0 +1,899 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1D2B22">
+<title>WildWatch Elmina</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/static/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="WildWatch">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=DM+Sans:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="/static/vendor/leaflet.css">
+<style>
+  /* ---------- Theme: Friendly Forest Edge ---------- */
+  :root {
+    --forest:#1D2B22; --bg:#F7F5EF; --card:#FFFFFF; --line:#E4E0D3; --muted:#4A5A51; --soft:#5A6A60;
+    --leaf:#2E7A55; --leaf-soft:#8FC08D; --sage:#BFE0C2; --red:#C93A2E; --red-deep:#8E1F16; --red-soft:#FBE1DD;
+    --monkey:#F6D77A; --dog:#BFD7F2; --snake:#BFE0C2; --boar:#F5C7A9; --lizard:#D6CCF2; --other:#F4C6D7;
+    --head:'Bricolage Grotesque', 'DM Sans', system-ui, sans-serif;
+    --body:'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --ease:cubic-bezier(.2,.8,.2,1);
+  }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { margin:0; background:#E9E6DC; }
+  body { font-family:var(--body); color:var(--forest); }
+  button { font-family:inherit; color:inherit; }
+  a { color:var(--forest); }
+  .app { max-width:480px; min-height:100dvh; margin:0 auto; background:var(--bg); position:relative; overflow-x:hidden; }
+  .screen { display:none; min-height:100dvh; padding-bottom:120px; }
+  .screen.active { display:block; }
+  .screen.no-nav { padding-bottom:28px; }
+  .pad { padding:0 20px; }
+  .hidden { display:none !important; }
+  h1, h2, h3 { font-family:var(--head); margin:0; }
+  .eyebrow { margin:0; font-size:12px; font-weight:700; letter-spacing:1.4px; text-transform:uppercase; }
+  .muted { color:var(--muted); }
+
+  /* ---------- Motion ---------- */
+  @keyframes enterUp { from { opacity:0; transform:translateY(26px); } to { opacity:1; transform:none; } }
+  @keyframes enterRight { from { opacity:0; transform:translateX(40px); } to { opacity:1; transform:none; } }
+  @keyframes enterLeft { from { opacity:0; transform:translateX(-40px); } to { opacity:1; transform:none; } }
+  @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+  @keyframes rise { from { opacity:0; transform:translateY(16px) scale(.98); } to { opacity:1; transform:none; } }
+  @keyframes pop { 0% { transform:scale(.4); opacity:0; } 70% { transform:scale(1.12); opacity:1; } 100% { transform:scale(1); } }
+  @keyframes pulse { 0% { box-shadow:0 0 0 0 rgba(201,58,46,.55); } 70% { box-shadow:0 0 0 16px rgba(201,58,46,0); } 100% { box-shadow:0 0 0 0 rgba(201,58,46,0); } }
+  @keyframes scan { 0% { top:12%; } 50% { top:82%; } 100% { top:12%; } }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  @keyframes float { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-6px); } }
+  .screen.active.in-up { animation:enterUp .42s var(--ease); }
+  .screen.active.in-right { animation:enterRight .38s var(--ease); }
+  .screen.active.in-left { animation:enterLeft .38s var(--ease); }
+  .screen.active.in-fade { animation:fadeIn .3s ease; }
+  .stagger > * { animation:rise .5s var(--ease) both; animation-delay:calc(var(--i, 0) * 70ms + 80ms); }
+  .press { transition:transform .12s ease, filter .12s ease; }
+  .press:active { transform:scale(.95); filter:brightness(.95); }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration:.01ms !important; animation-delay:0ms !important; transition-duration:.01ms !important; }
+  }
+
+  /* ---------- Shared pieces ---------- */
+  .btn { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; height:58px; border:none; border-radius:29px; background:var(--forest); color:var(--bg); font-weight:700; font-size:17px; text-decoration:none; cursor:pointer; }
+  .btn:disabled { opacity:.55; }
+  .btn.ghost { background:transparent; color:var(--forest); border:2px solid var(--forest); }
+  .btn.red { background:var(--red); color:#fff; }
+  .btn.red.big { height:66px; font-size:18px; animation:pulse 1.6s infinite; }
+  .btn-outline-red { display:flex; align-items:center; justify-content:center; gap:8px; height:50px; border-radius:25px; border:2px solid var(--red); color:#B3271C; text-decoration:none; font-weight:700; font-size:15px; }
+  .round { width:44px; height:44px; border-radius:22px; border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
+  .chip { border:1.5px solid #DCD8CC; background:#fff; border-radius:18px; padding:10px 14px; font-size:14px; font-weight:600; cursor:pointer; transition:background .18s, color .18s, transform .12s, border-color .18s; }
+  .chip.on { background:var(--forest); color:var(--bg); border-color:var(--forest); }
+  .chip:active { transform:scale(.94); }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; }
+  .card { background:var(--card); border:1.5px solid var(--line); border-radius:24px; padding:16px; }
+  .err { color:var(--red); font-size:14px; font-weight:600; min-height:1.2em; margin:8px 0 0; }
+  .spinner { width:18px; height:18px; border-radius:50%; border:2.5px solid rgba(247,245,239,.35); border-top-color:#F7F5EF; animation:spin .8s linear infinite; }
+
+  /* ---------- Welcome ---------- */
+  .welcome-art { height:420px; position:relative; overflow:hidden; }
+  .welcome-art svg.scene { position:absolute; inset:0; width:100%; height:100%; }
+  .logo { display:flex; align-items:center; gap:10px; }
+  .logo-mark { width:40px; height:40px; border-radius:14px; background:var(--forest); display:flex; align-items:center; justify-content:center; }
+  .sun { animation:float 4s ease-in-out infinite; transform-origin:center; }
+
+  /* ---------- Home ---------- */
+  .top { display:flex; align-items:center; gap:12px; padding:calc(16px + env(safe-area-inset-top)) 20px 8px; }
+  .call-pill { height:44px; padding:0 14px; border-radius:22px; background:var(--red); color:#fff; text-decoration:none; display:flex; align-items:center; gap:6px; font-family:var(--head); font-weight:800; font-size:17px; }
+  .hero { background:var(--monkey); border-radius:32px; padding:22px; position:relative; overflow:hidden; min-height:196px; }
+  .hero .ring-bg { position:absolute; right:-24px; top:-20px; }
+  .hero h1 { font-weight:800; font-size:34px; line-height:1; letter-spacing:-.8px; width:220px; position:relative; margin-top:6px; }
+  .hero p { margin:6px 0 0; font-size:15px; line-height:1.4; color:#3D3A22; width:200px; position:relative; }
+  .cam { position:absolute; right:18px; bottom:18px; width:78px; height:78px; border-radius:39px; border:none; background:var(--forest); display:flex; align-items:center; justify-content:center; box-shadow:0 8px 18px rgba(29,43,34,.25); cursor:pointer; }
+  .cam::after { content:""; position:absolute; inset:-6px; border-radius:50%; border:2px solid rgba(29,43,34,.25); animation:pulse 2.4s infinite; box-shadow:none; }
+  .linkish { background:none; border:none; padding:0; font-size:14px; font-weight:700; text-decoration:underline; cursor:pointer; position:relative; }
+  .near { background:var(--lizard); border-radius:26px; padding:16px 18px; display:flex; gap:14px; align-items:center; }
+  .near .ico { width:48px; height:48px; flex-shrink:0; border-radius:16px; background:var(--forest); display:flex; align-items:center; justify-content:center; }
+  .grid3 { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:10px; }
+  .tile { border:none; border-radius:20px; padding:12px; height:78px; display:flex; flex-direction:column; justify-content:flex-end; align-items:flex-start; text-align:left; cursor:pointer; }
+  .tile b { font-size:14px; } .tile span { font-size:12px; color:#3C4A41; }
+  .section-head { display:flex; align-items:baseline; justify-content:space-between; margin:4px 0 10px; }
+  .section-head h2 { font-weight:700; font-size:20px; }
+
+  /* ---------- Bottom bar ---------- */
+  .nav { position:fixed; left:50%; transform:translateX(-50%); bottom:calc(14px + env(safe-area-inset-bottom)); width:min(448px, calc(100% - 32px)); height:72px; border-radius:36px; background:var(--forest); display:flex; align-items:center; justify-content:space-around; padding:0 8px; z-index:50; box-shadow:0 10px 28px rgba(29,43,34,.28); }
+  .nav button { background:none; border:none; display:flex; flex-direction:column; align-items:center; gap:3px; color:#C9DBD0; font-size:11px; font-weight:700; white-space:nowrap; cursor:pointer; width:68px; padding:6px 0; border-radius:20px; transition:color .2s, background .2s; }
+  .nav button.on { color:var(--forest); background:var(--monkey); }
+  .nav .plus { width:58px; height:58px; border-radius:29px; background:var(--leaf-soft); color:var(--forest); justify-content:center; margin-top:-26px; box-shadow:0 8px 18px rgba(0,0,0,.25); border:4px solid var(--bg); }
+  .nav .plus span { display:none; }
+
+  /* ---------- Report (photo + AI result) ---------- */
+  .photo-wrap { position:relative; height:340px; background:#7FB38A; overflow:hidden; }
+  .photo-wrap img { width:100%; height:100%; object-fit:cover; display:block; }
+  .scanline { position:absolute; left:8%; right:8%; height:3px; border-radius:2px; background:var(--monkey); box-shadow:0 0 14px 4px rgba(246,215,122,.7); animation:scan 1.6s ease-in-out infinite; }
+  .frame { position:absolute; inset:46px 40px; pointer-events:none; }
+  .frame i { position:absolute; width:28px; height:28px; border:4px solid #F7F5EF; }
+  .frame i:nth-child(1) { left:0; top:0; border-right:none; border-bottom:none; border-radius:8px 0 0 0; }
+  .frame i:nth-child(2) { right:0; top:0; border-left:none; border-bottom:none; border-radius:0 8px 0 0; }
+  .frame i:nth-child(3) { left:0; bottom:0; border-right:none; border-top:none; border-radius:0 0 0 8px; }
+  .frame i:nth-child(4) { right:0; bottom:0; border-left:none; border-top:none; border-radius:0 0 8px 0; }
+  .photo-top { position:absolute; left:20px; right:20px; top:calc(16px + env(safe-area-inset-top)); display:flex; justify-content:space-between; }
+  .glass { background:rgba(247,245,239,.92); }
+  .sheet { position:relative; margin-top:-40px; background:var(--bg); border-radius:36px 36px 0 0; padding:22px 20px 0; display:flex; flex-direction:column; gap:18px; }
+  .ai-badge { align-self:flex-start; padding:4px 10px; border-radius:10px; background:var(--forest); color:var(--monkey); font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; }
+  .ring { position:relative; width:76px; height:76px; flex-shrink:0; }
+  .ring circle.val { transition:stroke-dashoffset 1s var(--ease), stroke .3s; }
+  .ring .num { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .ring .num b { font-family:var(--head); font-weight:800; font-size:18px; line-height:1; }
+  .ring .num span { font-size:10px; color:var(--muted); }
+  .animal-chip { border:2px solid transparent; border-radius:16px; padding:9px 12px; font-size:14px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:6px; transition:transform .12s, border-color .18s; }
+  .animal-chip.on { border-color:var(--forest); }
+  .animal-chip.on::before { content:""; width:8px; height:8px; border-radius:4px; background:var(--forest); }
+  .loc { display:flex; align-items:center; gap:12px; }
+  .loc .ico { width:42px; height:42px; border-radius:14px; background:var(--monkey); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+
+  /* ---------- Sent / track ---------- */
+  .done-head { background:var(--sage); border-radius:0 0 36px 36px; padding:calc(16px + env(safe-area-inset-top)) 20px 24px; position:relative; overflow:hidden; display:flex; flex-direction:column; gap:12px; }
+  .done-head .tick { position:absolute; right:-36px; top:16px; animation:pop .7s var(--ease) .15s both; }
+  .done-head .tick path { stroke-dasharray:110; stroke-dashoffset:110; animation:draw .7s ease .55s forwards; }
+  @keyframes draw { to { stroke-dashoffset:0; } }
+  .badge { padding:6px 12px; border-radius:12px; font-size:13px; font-weight:700; }
+  .u-high { background:var(--red); color:#fff; } .u-medium { background:var(--monkey); } .u-low { background:#F7F5EF; }
+  .timeline { list-style:none; margin:0; padding:0; }
+  .timeline li { display:flex; gap:14px; }
+  .timeline .rail { display:flex; flex-direction:column; align-items:center; width:24px; }
+  .timeline .dot { width:22px; height:22px; border-radius:11px; border:3px solid #C9C4B5; background:#fff; animation:pop .45s var(--ease) both; }
+  .timeline .bar { width:3px; flex-grow:1; min-height:18px; background:var(--line); }
+  .timeline li.done .dot { background:var(--leaf); border-color:var(--leaf); }
+  .timeline li.done .bar { background:var(--leaf); }
+  .timeline li.now .dot { background:var(--monkey); border-color:var(--forest); }
+  .timeline li:last-child .bar { background:transparent; }
+  .timeline .txt { display:flex; flex-direction:column; padding-bottom:14px; }
+  .timeline .txt b { font-size:15px; } .timeline .txt span { font-size:13px; color:var(--soft); }
+  .tipcard { border-radius:20px; padding:12px; display:flex; flex-direction:column; gap:6px; }
+  .tipcard b { font-family:var(--head); font-weight:800; font-size:22px; }
+  .tipcard span { font-size:13px; line-height:1.35; font-weight:500; }
+
+  /* ---------- My reports ---------- */
+  .page-head { padding:calc(20px + env(safe-area-inset-top)) 20px 14px; display:flex; flex-direction:column; gap:4px; }
+  .page-head h1 { font-weight:800; font-size:32px; letter-spacing:-.6px; }
+  .rep { display:flex; align-items:center; gap:14px; width:100%; text-align:left; background:#fff; border:1.5px solid var(--line); border-radius:22px; padding:12px 14px; cursor:pointer; }
+  .rep .sw { width:46px; height:46px; border-radius:16px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-family:var(--head); font-weight:800; font-size:15px; }
+  .pill { padding:5px 10px; border-radius:10px; font-size:12px; font-weight:700; white-space:nowrap; }
+  .st-received, .st-assigned { background:#F7F5EF; border:1.5px solid #C9C4B5; }
+  .st-in_progress { background:var(--monkey); }
+  .st-resolved { background:var(--sage); }
+  .empty { text-align:center; padding:28px 16px; }
+  input[type=text], input[type=number] { width:100%; height:52px; padding:0 16px; border:1.5px solid #DCD8CC; border-radius:18px; font-size:16px; font-family:inherit; background:#fff; }
+  label.lbl { font-size:14px; font-weight:700; display:block; margin-bottom:8px; }
+
+  /* ---------- Map ---------- */
+  .map-box { height:calc(100dvh - 300px); min-height:340px; border-radius:28px; overflow:hidden; border:1.5px solid var(--line); }
+  .legend { display:flex; gap:6px; overflow-x:auto; padding-bottom:4px; scrollbar-width:none; }
+  .legend::-webkit-scrollbar { display:none; }
+  .legend .chip { white-space:nowrap; padding:8px 12px; }
+  .legend .chip i { display:inline-block; width:10px; height:10px; border-radius:5px; margin-right:6px; vertical-align:middle; }
+
+  /* ---------- Tips ---------- */
+  .tip-row { display:flex; gap:14px; align-items:flex-start; background:#fff; border:1.5px solid var(--line); border-radius:20px; padding:14px 16px; }
+  .tip-row .n { width:34px; height:34px; border-radius:12px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-family:var(--head); font-weight:800; }
+
+  /* ---------- Location picker sheet ---------- */
+  .overlay { position:fixed; inset:0; background:rgba(29,43,34,.45); z-index:80; display:flex; align-items:flex-end; justify-content:center; animation:fadeIn .2s ease; }
+  .overlay .panel { width:100%; max-width:480px; background:var(--bg); border-radius:32px 32px 0 0; padding:18px 20px calc(20px + env(safe-area-inset-bottom)); display:flex; flex-direction:column; gap:12px; animation:enterUp .35s var(--ease); }
+  #pickMap { height:52vh; border-radius:22px; }
+
+  .install { display:flex; align-items:center; gap:10px; background:#fff; border:1.5px solid var(--line); border-radius:20px; padding:10px 12px; font-size:13px; }
+  .noServer { background:#fdf1e6; color:#7a3a10; padding:12px 16px; font-size:14px; line-height:1.5; }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+<div class="noServer hidden" id="noServer"><b>This page needs the WildWatch server.</b> Run the app (F5 or <code>python -m uvicorn backend.app:app --reload</code>) and open <b>http://localhost:8000/app</b>.</div>
+
+<input type="file" id="photoInput" accept="image/*" capture="environment" hidden>
+
+<!-- ======================= WELCOME (first visit only) ======================= -->
+<section class="screen no-nav" id="s-welcome" aria-label="Welcome">
+  <div class="welcome-art">
+    <svg class="scene" viewBox="0 0 390 420" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <circle class="sun" cx="300" cy="96" r="54" fill="#F6D77A"></circle>
+      <path d="M0 250 C 80 170, 160 190, 230 230 S 360 200, 390 170 L 390 420 L 0 420 Z" fill="#8FC08D"></path>
+      <path d="M0 300 C 90 250, 170 270, 250 300 S 360 280, 390 260 L 390 420 L 0 420 Z" fill="#5E9E6E"></path>
+      <rect x="196" y="282" width="70" height="60" rx="6" fill="#F7F5EF"></rect>
+      <path d="M188 286 L231 248 L274 286 Z" fill="#E7855E"></path>
+      <rect x="222" y="306" width="18" height="36" rx="3" fill="#BFD7F2"></rect>
+      <rect x="290" y="300" width="56" height="44" rx="6" fill="#F7F5EF"></rect>
+      <path d="M283 304 L318 274 L353 304 Z" fill="#E7855E"></path>
+      <rect x="60" y="216" width="10" height="70" rx="5" fill="#3E6B4C"></rect>
+      <circle cx="65" cy="200" r="34" fill="#3E7A52"></circle>
+      <circle cx="44" cy="222" r="22" fill="#3E7A52"></circle>
+      <circle cx="122" cy="246" r="20" fill="#C98B5B"></circle>
+      <circle cx="122" cy="226" r="13" fill="#C98B5B"></circle>
+      <circle cx="117" cy="223" r="2.5" fill="#1D2B22"></circle>
+      <circle cx="127" cy="223" r="2.5" fill="#1D2B22"></circle>
+      <path d="M140 252 C 160 250, 162 230, 150 222" stroke="#C98B5B" stroke-width="5" fill="none" stroke-linecap="round"></path>
+      <path d="M0 360 C 100 340, 200 350, 390 330 L 390 420 L 0 420 Z" fill="#F7F5EF"></path>
+    </svg>
+    <div class="logo" style="position:absolute;top:calc(28px + env(safe-area-inset-top));left:24px">
+      <div class="logo-mark"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F6D77A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="15" r="4"/><circle cx="6" cy="9" r="2"/><circle cx="10" cy="5" r="2"/><circle cx="14" cy="5" r="2"/><circle cx="18" cy="9" r="2"/></svg></div>
+      <span style="font-family:var(--head);font-weight:800;font-size:20px">WildWatch</span>
+    </div>
+  </div>
+  <div class="pad stagger" style="display:flex;flex-direction:column;gap:16px">
+    <p class="eyebrow" style="color:var(--leaf);--i:0">City of Elmina</p>
+    <h1 style="font-weight:800;font-size:44px;line-height:1.02;letter-spacing:-1px;--i:1">Share the township, <span style="font-style:italic;font-weight:600;color:var(--leaf)">safely.</span></h1>
+    <p style="margin:0;font-size:16px;line-height:1.5;color:var(--muted);--i:2">Snap any animal you see. We’ll tell you what it is, how to stay safe, and who’s coming to help.</p>
+    <p style="margin:0;font-size:13px;color:var(--soft);--i:3">We’ll ask for your location so responders can find the animal.</p>
+    <button class="btn press" id="startBtn" style="--i:4;justify-content:space-between;padding:0 8px 0 24px">Get started<span style="width:44px;height:44px;border-radius:22px;background:var(--monkey);display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1D2B22" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></button>
+    <a class="btn-outline-red press" href="tel:999" style="--i:5"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B3271C" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg>In danger? Call 999</a>
+  </div>
+</section>
+
+<!-- ======================= HOME ======================= -->
+<section class="screen" id="s-home" aria-label="Home">
+  <div class="top">
+    <div style="width:44px;height:44px;border-radius:16px;background:var(--sage);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1D2B22" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg></div>
+    <div style="flex-grow:1;display:flex;flex-direction:column;min-width:0">
+      <span id="greet" style="font-family:var(--head);font-weight:700;font-size:20px">Selamat datang</span>
+      <span style="font-size:13px;color:var(--muted)">City of Elmina · <button class="linkish" id="locStatus" style="font-size:13px;font-weight:600">Turn on location</button></span>
+    </div>
+    <a class="call-pill press" href="tel:999" aria-label="Emergency, call 999"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg>999</a>
+  </div>
+
+  <div class="pad stagger" style="display:flex;flex-direction:column;gap:14px;margin-top:6px">
+    <div class="install hidden" id="installBar" style="--i:0">
+      <img src="/static/icons/icon-192.png" alt="" width="36" height="36" style="border-radius:10px">
+      <span style="flex-grow:1" id="installHint">Add WildWatch to your home screen for one-tap reporting.</span>
+      <button class="chip on" id="installBtn" style="padding:8px 12px">Add</button>
+      <button class="round" id="installClose" aria-label="Dismiss" style="width:32px;height:32px;background:none;font-size:18px">&times;</button>
+    </div>
+
+    <div class="hero" style="--i:1">
+      <svg class="ring-bg" width="150" height="150" viewBox="0 0 150 150" aria-hidden="true"><circle cx="75" cy="75" r="70" fill="#F9E3A1"/><circle cx="75" cy="75" r="44" fill="#FBEBC0"/></svg>
+      <p class="eyebrow" style="position:relative">Report in 30 seconds</p>
+      <h1>Saw an animal?</h1>
+      <p>Snap it. Our AI names it and tells you what to do.</p>
+      <div style="height:16px"></div>
+      <button class="linkish" id="noPhotoBtn">No photo? Report anyway</button>
+      <button class="cam press" id="camBtn" aria-label="Take a photo of the animal"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#F6D77A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8a2 2 0 0 1 2-2h2l1.5-2h7L17 6h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3.5"/></svg></button>
+    </div>
+
+    <div class="near" id="nearCard" style="--i:2">
+      <div class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#D6CCF2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg></div>
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <span class="eyebrow" style="color:#3B2F6B">Near you this week</span>
+        <span id="nearTitle" style="font-weight:700;font-size:15px;line-height:1.3">Checking recent sightings…</span>
+        <span id="nearTip" style="font-size:13px;color:#3B2F6B"></span>
+      </div>
+    </div>
+
+    <div style="--i:3">
+      <div class="section-head"><h2>Know your neighbours</h2><button class="linkish" data-go="tips" style="font-size:13px">All tips</button></div>
+      <div class="grid3" id="animalTiles"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= REPORT: photo + AI result ======================= -->
+<section class="screen no-nav" id="s-result" aria-label="New report">
+  <div class="photo-wrap" id="photoWrap">
+    <img id="photoPreview" alt="Your photo of the animal" class="hidden">
+    <svg id="photoPlaceholder" width="100%" height="100%" viewBox="0 0 390 340" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="390" height="340" fill="#7FB38A"/><circle cx="70" cy="80" r="70" fill="#6CA57B"/><circle cx="340" cy="60" r="90" fill="#6CA57B"/><path d="M0 260 C 100 220, 260 240, 390 210 L390 340 L0 340Z" fill="#5E9E6E"/></svg>
+    <div class="frame"><i></i><i></i><i></i><i></i></div>
+    <div class="scanline hidden" id="scanline"></div>
+    <div class="photo-top">
+      <button class="round glass press" id="backBtn" aria-label="Back"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1D2B22" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
+      <button class="chip glass press" id="retakeBtn" style="border:none">Retake photo</button>
+    </div>
+  </div>
+
+  <div class="sheet">
+    <div style="display:flex;align-items:center;gap:14px" id="aiRow">
+      <div style="flex-grow:1;display:flex;flex-direction:column;gap:2px;min-width:0">
+        <span class="ai-badge" id="aiBadge">AI is looking…</span>
+        <h1 id="aiAnimal" style="margin-top:4px;font-weight:800;font-size:34px;line-height:1;letter-spacing:-.6px">Identifying</h1>
+        <span id="aiNote" aria-live="polite" style="font-size:14px;color:var(--muted)">Hold on, this takes a few seconds.</span>
+      </div>
+      <div class="ring" id="ring">
+        <svg width="76" height="76" viewBox="0 0 76 76" aria-hidden="true">
+          <circle cx="38" cy="38" r="28" fill="none" stroke="#E4E0D3" stroke-width="8"/>
+          <circle class="val" id="ringVal" cx="38" cy="38" r="28" fill="none" stroke="#2E7A55" stroke-width="8" stroke-linecap="round" stroke-dasharray="175.9" stroke-dashoffset="175.9" transform="rotate(-90 38 38)"/>
+        </svg>
+        <div class="num"><b id="ringNum">–</b><span>sure</span></div>
+      </div>
+    </div>
+
+    <div>
+      <label class="lbl" id="animalLbl">Which animal? <span class="muted" style="font-weight:500">Tap to change</span></label>
+      <div class="chips" id="animalChips" role="group" aria-labelledby="animalLbl"></div>
+    </div>
+
+    <div>
+      <label class="lbl" id="incLbl">What’s happening?</label>
+      <div class="chips" id="incidentChips" role="group" aria-labelledby="incLbl"></div>
+    </div>
+
+    <div class="card loc">
+      <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1D2B22" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg></div>
+      <div style="flex-grow:1;display:flex;flex-direction:column;min-width:0">
+        <b id="locTitle" style="font-size:14px">Finding your location…</b>
+        <span id="locSub" style="font-size:12px;color:var(--muted)">Using your phone’s GPS</span>
+      </div>
+      <button class="linkish" id="changeLoc" style="font-size:13px">Change</button>
+    </div>
+
+    <div>
+      <button class="btn press" id="sendBtn">Send report<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F6D77A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg></button>
+      <p class="err" id="sendErr" role="alert"></p>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= SENT / TRACK ======================= -->
+<section class="screen no-nav" id="s-sent" aria-label="Report status">
+  <div class="done-head">
+    <svg class="tick" width="180" height="180" viewBox="0 0 180 180" aria-hidden="true"><circle cx="90" cy="90" r="88" fill="#D3EAD3"/><path d="M58 92l22 22 44-48" stroke="#2E7A55" stroke-width="12" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <div style="display:flex;justify-content:space-between;position:relative">
+      <button class="round press" data-go="home" style="background:var(--bg)" aria-label="Back to home"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1D2B22" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
+    </div>
+    <p class="eyebrow" id="sentId" style="color:#22573D;position:relative"></p>
+    <h1 id="sentTitle" style="font-weight:800;font-size:30px;line-height:1.05;letter-spacing:-.6px;width:260px;position:relative"></h1>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;position:relative">
+      <span class="badge" id="sentUrg"></span>
+      <span class="badge" id="sentWhat" style="background:var(--bg);font-weight:600"></span>
+    </div>
+  </div>
+
+  <div class="pad stagger" id="sentBody" style="display:flex;flex-direction:column;gap:18px;margin-top:20px">
+    <div class="card" style="--i:0">
+      <p style="margin:0 0 4px;font-size:13px;color:var(--soft)">Received by <b style="color:var(--forest)">Elmina Township Management</b></p>
+      <p style="margin:0 0 14px;font-size:13px;color:var(--soft)">Recommended agency: <b style="color:var(--forest)" id="sentAgency"></b></p>
+      <ul class="timeline" id="timeline"></ul>
+    </div>
+    <div style="--i:1">
+      <h2 style="font-weight:700;font-size:20px;margin-bottom:10px">Stay safe now</h2>
+      <div class="grid3" id="sentTips"></div>
+    </div>
+    <a class="btn red press" id="sentCall" href="tel:999" style="--i:2"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg>Someone in danger? Call 999</a>
+    <div style="display:flex;gap:10px;--i:3">
+      <button class="btn ghost press" data-go="reports">My reports</button>
+      <button class="btn press" data-go="home">Done</button>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= MY REPORTS ======================= -->
+<section class="screen" id="s-reports" aria-label="My reports">
+  <div class="page-head">
+    <p class="eyebrow" style="color:var(--leaf)">Saved on this phone</p>
+    <h1>My reports</h1>
+  </div>
+  <div class="pad" style="display:flex;flex-direction:column;gap:16px">
+    <div class="stagger" id="repList" style="display:flex;flex-direction:column;gap:10px"></div>
+    <div class="card" style="display:flex;flex-direction:column;gap:10px">
+      <label class="lbl" for="trackId" style="margin:0">Have a report number?</label>
+      <div style="display:flex;gap:8px">
+        <input type="number" id="trackId" inputmode="numeric" placeholder="e.g. 452">
+        <button class="btn press" id="trackBtn" style="width:110px;height:52px;border-radius:18px;font-size:15px">Check</button>
+      </div>
+      <p class="err" id="trackErr" role="alert" style="margin:0"></p>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= MAP ======================= -->
+<section class="screen" id="s-map" aria-label="Sightings map">
+  <div class="page-head">
+    <p class="eyebrow" style="color:var(--leaf)">Last 14 days</p>
+    <h1>Sightings near you</h1>
+  </div>
+  <div class="pad" style="display:flex;flex-direction:column;gap:12px">
+    <div class="legend" id="legend" role="group" aria-label="Filter by animal"></div>
+    <div class="map-box" id="map" role="region" aria-label="Map of recent sightings"></div>
+    <p style="margin:0;font-size:12px;color:var(--soft)">Locations are rounded to about 100 m to protect residents’ privacy. <span id="mapCount"></span></p>
+  </div>
+</section>
+
+<!-- ======================= TIPS ======================= -->
+<section class="screen" id="s-tips" aria-label="Safety tips">
+  <div class="page-head">
+    <p class="eyebrow" style="color:var(--leaf)">Stay safe</p>
+    <h1>Safety tips</h1>
+  </div>
+  <div class="pad" style="display:flex;flex-direction:column;gap:14px">
+    <div class="legend" id="tipTabs" role="group" aria-label="Choose an animal"></div>
+    <div id="tipHero" style="border-radius:28px;padding:20px;display:flex;flex-direction:column;gap:4px">
+      <span class="eyebrow" id="tipMalay"></span>
+      <h2 id="tipName" style="font-weight:800;font-size:30px;letter-spacing:-.5px"></h2>
+      <span id="tipWho" style="font-size:14px"></span>
+    </div>
+    <div class="stagger" id="tipList" style="display:flex;flex-direction:column;gap:10px"></div>
+    <div style="background:var(--forest);color:var(--bg);border-radius:26px;padding:18px;display:flex;flex-direction:column;gap:10px">
+      <h2 style="font-weight:700;font-size:20px">In an emergency</h2>
+      <p style="margin:0;font-size:14px;color:#C9DBD0;line-height:1.45">If someone is bitten, attacked, or a snake or biawak is inside your home, call 999 straight away.</p>
+      <a class="btn red press" href="tel:999" style="height:52px">Call 999</a>
+    </div>
+    <p style="text-align:center;font-size:12px;margin:6px 0 0"><a href="/dashboard" style="color:var(--soft)">Township management? Open the dashboard</a></p>
+  </div>
+</section>
+
+<!-- ======================= BOTTOM BAR ======================= -->
+<nav class="nav hidden" id="nav" aria-label="Main">
+  <button data-go="home" aria-label="Home"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span>Home</span></button>
+  <button data-go="map" aria-label="Map"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></svg><span>Map</span></button>
+  <button class="plus press" id="navPlus" aria-label="Report an animal"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Report</span></button>
+  <button data-go="reports" aria-label="My reports"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg><span>My reports</span></button>
+  <button data-go="tips" aria-label="Safety tips"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg><span>Tips</span></button>
+</nav>
+</div>
+
+<!-- Location picker -->
+<div class="overlay hidden" id="pickSheet" role="dialog" aria-modal="true" aria-labelledby="pickTitle">
+  <div class="panel">
+    <h2 id="pickTitle" style="font-weight:700;font-size:20px">Where is the animal?</h2>
+    <p style="margin:0;font-size:14px;color:var(--muted)">Tap the map to move the pin.</p>
+    <div id="pickMap"></div>
+    <div style="display:flex;gap:10px">
+      <button class="btn ghost press" id="pickCancel">Cancel</button>
+      <button class="btn press" id="pickOk">Use this spot</button>
+    </div>
+  </div>
+</div>
+
+<script src="/static/vendor/leaflet.js"></script>
+<script>
+"use strict";
+if (location.protocol === "file:") document.getElementById("noServer").classList.remove("hidden");
+
+/* ---------- Data ---------- */
+const ANIMALS = {
+  monkey:         { name: "Monkey",         malay: "Monyet",      bg: "#F6D77A", deep: "#E2B93B", who: "Usually handled by PERHILITAN, or township management for bins." },
+  dog:            { name: "Stray dog",      malay: "Anjing liar", bg: "#BFD7F2", deep: "#6E9FD6", who: "Usually handled by MBSA (the city council)." },
+  snake:          { name: "Snake",          malay: "Ular",        bg: "#BFE0C2", deep: "#5E9E6E", who: "Inside a home: Bomba (999). Outside: PERHILITAN." },
+  wild_boar:      { name: "Wild boar",      malay: "Babi hutan",  bg: "#F5C7A9", deep: "#D9895F", who: "Usually handled by PERHILITAN." },
+  monitor_lizard: { name: "Monitor lizard", malay: "Biawak",      bg: "#D6CCF2", deep: "#9C86D9", who: "Inside a home: Bomba (999). Outside: PERHILITAN." },
+  other:          { name: "Other",          malay: "Lain-lain",   bg: "#F4C6D7", deep: "#D97A9E", who: "Township management will check and decide." }
+};
+const INCIDENTS = { sighting: "Just a sighting", bins: "Rummaging bins", entered_home: "Entered home", damage: "Property damage", attack: "Attack or bite" };
+const STEPS = [
+  ["received", "Report received", "We have your report"],
+  ["assigned", "Assigned by management", "Elmina Township Management"],
+  ["in_progress", "Team on the way", "Responders are handling it"],
+  ["resolved", "Resolved", "All sorted"]
+];
+const NEAR_TIP = {
+  monkey: "Keep bin lids shut and food out of sight.",
+  dog: "Walk in groups in the evening and keep children close.",
+  snake: "Keep grass short and drains clear around your home.",
+  wild_boar: "Seal food waste overnight.",
+  monitor_lizard: "Keep chickens and pet food secured.",
+  other: "Keep a safe distance from any wild animal."
+};
+let TIPS = {  // replaced by the server's tips when they load
+  monkey: ["Do not feed or make eye contact with the monkey.", "Close windows and doors, and keep food out of sight.", "Keep bin lids shut and secured."],
+  dog: ["Stay calm, do not run or turn your back.", "Keep children indoors until the dog leaves.", "If bitten, wash the wound with soap for 15 minutes and see a doctor."],
+  snake: ["Keep at least 2 metres away and do not try to catch it.", "Keep children and pets away from the area.", "Watch where it goes so responders can find it."],
+  wild_boar: ["Move away slowly and give it space to leave.", "Do not corner or chase it.", "Keep food waste sealed overnight."],
+  monitor_lizard: ["Keep at least 2 metres away. Do not corner it, it can whip its tail and bite.", "Keep children, pets and chickens away, and close doors so it can leave on its own.", "Do not try to catch it. Watch where it goes so responders can find it."],
+  other: ["Keep a safe distance and do not touch the animal.", "Keep children and pets indoors."]
+};
+const ELMINA = [3.1800, 101.4930];
+const TIP_COLORS = ["#F6D77A", "#BFD7F2", "#F4C6D7"];
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+};
+
+/* ---------- Sounds (made in code, no files) ---------- */
+const Sound = (() => {
+  let ctx = null;
+  function ac() {
+    try {
+      if (!ctx) { const C = window.AudioContext || window.webkitAudioContext; if (!C) return null; ctx = new C(); }
+      if (ctx.state === "suspended") ctx.resume();
+      return ctx;
+    } catch { return null; }
+  }
+  function tone(freq, start, dur, type, vol) {
+    const c = ac(); if (!c) return;
+    const t = c.currentTime + start, o = c.createOscillator(), g = c.createGain();
+    o.type = type; o.frequency.setValueAtTime(freq, t);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + dur + 0.03);
+  }
+  function noise(len, from, to, vol) {
+    const c = ac(); if (!c) return;
+    const buf = c.createBuffer(1, Math.floor(c.sampleRate * len), c.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.sin(Math.PI * i / d.length);
+    const src = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+    src.buffer = buf; f.type = "bandpass"; f.Q.value = 1.1;
+    f.frequency.setValueAtTime(from, c.currentTime); f.frequency.exponentialRampToValueAtTime(to, c.currentTime + len);
+    g.gain.value = vol; src.connect(f); f.connect(g); g.connect(c.destination); src.start();
+  }
+  const buzz = p => { try { navigator.vibrate && navigator.vibrate(p); } catch {} };
+  return {
+    tap()   { tone(1150, 0, 0.05, "triangle", 0.045); buzz(8); },
+    swipe() { noise(0.26, 500, 2600, 0.09); },
+    pop()   { tone(660, 0, 0.09, "sine", 0.07); tone(990, 0.07, 0.12, "sine", 0.06); },
+    send()  { noise(0.38, 300, 3400, 0.12); },
+    done()  { tone(784, 0, 0.2, "sine", 0.08); tone(1046.5, 0.13, 0.24, "sine", 0.08); tone(1318.5, 0.26, 0.4, "sine", 0.07); buzz([12, 50, 20]); },
+    error() { tone(330, 0, 0.14, "square", 0.035); tone(247, 0.12, 0.2, "square", 0.035); buzz(60); }
+  };
+})();
+document.addEventListener("click", e => { if (e.target.closest("button, a, .tile")) Sound.tap(); }, true);
+
+/* ---------- Screens and transitions ---------- */
+const ORDER = ["home", "map", "reports", "tips"];
+const NAV_SCREENS = new Set(ORDER);
+let current = null;
+function show(name, how) {
+  const next = $("s-" + name); if (!next) return;
+  let anim = how;
+  if (!anim && current && ORDER.includes(current) && ORDER.includes(name)) anim = ORDER.indexOf(name) > ORDER.indexOf(current) ? "in-right" : "in-left";
+  document.querySelectorAll(".screen.active").forEach(s => s.classList.remove("active", "in-up", "in-right", "in-left", "in-fade"));
+  next.classList.add("active", anim || "in-up");
+  restagger(next);
+  $("nav").classList.toggle("hidden", !NAV_SCREENS.has(name));
+  document.querySelectorAll("#nav [data-go]").forEach(b => b.classList.toggle("on", b.dataset.go === name));
+  if (current && current !== name) Sound.swipe();
+  current = name;
+  window.scrollTo(0, 0);
+  if (name === "home") renderHome();
+  if (name === "reports") renderReports();
+  if (name === "map") openMap();
+  if (name === "tips") renderTips(tipAnimal);
+}
+function restagger(root) {
+  root.querySelectorAll(".stagger").forEach(box => {
+    [...box.children].forEach((c, i) => { if (!c.style.getPropertyValue("--i")) c.style.setProperty("--i", i); c.style.animation = "none"; void c.offsetWidth; c.style.animation = ""; });
+  });
+}
+document.addEventListener("click", e => { const b = e.target.closest("[data-go]"); if (b) show(b.dataset.go); });
+
+/* ---------- Location ---------- */
+const here = { lat: null, lng: null, acc: null };
+function locate(onDone) {
+  if (!navigator.geolocation) { onDone && onDone(false); return; }
+  navigator.geolocation.getCurrentPosition(p => {
+    here.lat = p.coords.latitude; here.lng = p.coords.longitude; here.acc = p.coords.accuracy;
+    store.set("ww_loc", true);
+    $("locStatus").textContent = "location on";
+    onDone && onDone(true);
+  }, () => { $("locStatus").textContent = "Turn on location"; onDone && onDone(false); },
+  { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 });
+}
+$("locStatus").onclick = () => locate(ok => { if (ok) renderNear(); });
+function distKm(a, b, c, d) { const r = Math.PI / 180, x = (d - b) * r * Math.cos((a + c) / 2 * r), y = (c - a) * r; return Math.sqrt(x * x + y * y) * 6371; }
+
+/* ---------- Home ---------- */
+function greeting() { const h = new Date().getHours(); return h < 12 ? "Selamat pagi" : h < 19 ? "Selamat petang" : "Selamat malam"; }
+function renderHome() {
+  $("greet").textContent = greeting();
+  const tiles = $("animalTiles");
+  if (!tiles.children.length) {
+    for (const [k, a] of Object.entries(ANIMALS)) {
+      const t = document.createElement("button");
+      t.className = "tile press"; t.style.background = a.bg; t.setAttribute("aria-label", a.name + " safety tips");
+      t.innerHTML = "<b>" + esc(a.name) + "</b><span>" + esc(a.malay) + "</span>";
+      t.onclick = () => { tipAnimal = k; show("tips", "in-up"); };
+      tiles.appendChild(t);
+    }
+  }
+  renderNear();
+}
+let sightings7 = null;
+async function renderNear() {
+  try {
+    if (!sightings7) { const r = await fetch("/api/public/sightings?days=7"); if (!r.ok) throw 0; sightings7 = await r.json(); }
+    let list = sightings7, where = "in Elmina";
+    if (here.lat !== null) { list = sightings7.filter(s => distKm(here.lat, here.lng, s.lat, s.lng) <= 1.5); where = "near you"; }
+    if (!list.length) { $("nearTitle").textContent = "All quiet " + where + " this week"; $("nearTip").textContent = "No animal reports in the last 7 days."; return; }
+    const count = {}; list.forEach(s => count[s.animal] = (count[s.animal] || 0) + 1);
+    const top = Object.entries(count).sort((a, b) => b[1] - a[1])[0];
+    const a = ANIMALS[top[0]] || ANIMALS.other;
+    $("nearTitle").textContent = a.name + " reported " + top[1] + (top[1] === 1 ? " time " : " times ") + where;
+    $("nearTip").textContent = NEAR_TIP[top[0]] || NEAR_TIP.other;
+  } catch { $("nearTitle").textContent = "Stay alert around forest edges"; $("nearTip").textContent = "Keep bins shut and food out of sight."; }
+}
+
+/* ---------- Report flow ---------- */
+const report = { animal: null, incident: null, lat: null, lng: null, photo: null, confidence: null, ai_mode: null, placed: false };
+function resetReport() {
+  Object.assign(report, { animal: null, incident: null, lat: null, lng: null, photo: null, confidence: null, ai_mode: null, placed: false });
+  $("sendErr").textContent = ""; $("sendBtn").disabled = false;
+}
+$("camBtn").onclick = () => $("photoInput").click();
+$("navPlus").onclick = () => $("photoInput").click();
+$("retakeBtn").onclick = () => $("photoInput").click();
+$("noPhotoBtn").onclick = () => { resetReport(); startResult(null); };
+$("backBtn").onclick = () => show("home", "in-fade");
+$("photoInput").onchange = e => {
+  const file = e.target.files[0]; e.target.value = "";
+  if (!file) return;
+  resetReport(); startResult(file);
+};
+
+function animalChips() {
+  const box = $("animalChips"); box.innerHTML = "";
+  for (const [k, a] of Object.entries(ANIMALS)) {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "animal-chip press" + (report.animal === k ? " on" : "");
+    b.style.background = a.bg; b.textContent = a.name; b.setAttribute("aria-pressed", report.animal === k);
+    b.onclick = () => { report.animal = k; animalChips(); $("sendErr").textContent = ""; };
+    box.appendChild(b);
+  }
+}
+function incidentChips() {
+  const box = $("incidentChips"); box.innerHTML = "";
+  for (const [k, label] of Object.entries(INCIDENTS)) {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "chip" + (report.incident === k ? " on" : "");
+    b.textContent = label; b.setAttribute("aria-pressed", report.incident === k);
+    b.onclick = () => { report.incident = k; incidentChips(); $("sendErr").textContent = ""; };
+    box.appendChild(b);
+  }
+}
+function setRing(conf, ok) {
+  const v = $("ringVal"), c = 175.9;
+  v.style.stroke = ok ? "#2E7A55" : "#E2B93B";
+  v.style.strokeDashoffset = c;
+  requestAnimationFrame(() => requestAnimationFrame(() => { v.style.strokeDashoffset = c * (1 - Math.max(0, Math.min(1, conf))); }));
+  const target = Math.round(conf * 100); let n = 0;
+  const step = () => { n = Math.min(target, n + Math.max(1, Math.round(target / 18))); $("ringNum").textContent = n + "%"; if (n < target) requestAnimationFrame(step); };
+  step();
+}
+async function startResult(file) {
+  animalChips(); incidentChips();
+  $("ringVal").style.strokeDashoffset = 175.9; $("ringNum").textContent = "–";
+  if (file) {
+    $("photoPreview").src = URL.createObjectURL(file);
+    $("photoPreview").classList.remove("hidden"); $("photoPlaceholder").classList.add("hidden");
+    $("retakeBtn").textContent = "Retake photo";
+    $("aiRow").classList.remove("hidden");
+    $("aiBadge").textContent = "AI is looking…"; $("aiAnimal").textContent = "Identifying"; $("aiNote").textContent = "Hold on, this takes a few seconds.";
+    $("scanline").classList.remove("hidden");
+  } else {
+    $("photoPreview").classList.add("hidden"); $("photoPlaceholder").classList.remove("hidden");
+    $("retakeBtn").textContent = "Add a photo";
+    $("aiRow").classList.add("hidden"); $("scanline").classList.add("hidden");
+  }
+  show("result", "in-up");
+  fillLocation();
+  if (!file) return;
+  const fd = new FormData(); fd.append("photo", file);
+  try {
+    const res = await fetch("/api/classify", { method: "POST", body: fd });
+    if (!res.ok) throw 0;
+    const r = await res.json();
+    report.photo = r.photo; report.confidence = r.confidence; report.ai_mode = r.mode;
+    $("scanline").classList.add("hidden");
+    if (r.animal && ANIMALS[r.animal]) {
+      const a = ANIMALS[r.animal];
+      $("aiAnimal").textContent = a.name;
+      if (r.confident) {
+        report.animal = r.animal;
+        $("aiBadge").textContent = "AI detected";
+        $("aiNote").textContent = "Not right? Tap the correct animal below.";
+      } else {
+        $("aiBadge").textContent = "Not sure";
+        $("aiNote").textContent = "Maybe a " + a.name.toLowerCase() + ". Please pick the animal below.";
+      }
+      setRing(r.confidence || 0, !!r.confident); Sound.pop();
+    } else {
+      $("aiBadge").textContent = "Pick the animal"; $("aiAnimal").textContent = "Which one?";
+      $("aiNote").textContent = "The AI isn’t available right now. Please pick below."; setRing(0, false);
+    }
+    animalChips();
+  } catch {
+    $("scanline").classList.add("hidden");
+    $("aiBadge").textContent = "Offline"; $("aiAnimal").textContent = "Which one?";
+    $("aiNote").textContent = "Couldn’t reach the AI. Please pick the animal below."; setRing(0, false);
+  }
+}
+function fillLocation() {
+  if (report.placed) return;
+  $("locTitle").textContent = "Finding your location…"; $("locSub").textContent = "Using your phone’s GPS";
+  locate(ok => {
+    if (report.placed) return;
+    if (ok) {
+      report.lat = here.lat; report.lng = here.lng;
+      $("locTitle").textContent = "Your current location";
+      $("locSub").textContent = "From GPS · accurate to about " + Math.max(5, Math.round(here.acc || 0)) + " m";
+    } else {
+      $("locTitle").textContent = "Location is off";
+      $("locSub").textContent = "Tap Change to place a pin on the map";
+    }
+  });
+}
+
+/* Location picker */
+let pickMap = null, pickPin = null, pickLatLng = null;
+$("changeLoc").onclick = () => {
+  $("pickSheet").classList.remove("hidden");
+  const start = report.lat !== null ? [report.lat, report.lng] : ELMINA;
+  if (!pickMap) {
+    pickMap = L.map("pickMap", { zoomControl: false }).setView(start, 16);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "&copy; OpenStreetMap" }).addTo(pickMap);
+    pickMap.on("click", e => { pickLatLng = e.latlng; pickPin.setLatLng(e.latlng); Sound.tap(); });
+    pickPin = L.circleMarker(start, { radius: 11, color: "#1D2B22", weight: 3, fillColor: "#F6D77A", fillOpacity: 1 }).addTo(pickMap);
+  } else { pickMap.setView(start, 16); pickPin.setLatLng(start); }
+  pickLatLng = L.latLng(start[0], start[1]);
+  setTimeout(() => pickMap.invalidateSize(), 120);
+};
+$("pickCancel").onclick = () => $("pickSheet").classList.add("hidden");
+$("pickOk").onclick = () => {
+  report.lat = pickLatLng.lat; report.lng = pickLatLng.lng; report.placed = true;
+  $("locTitle").textContent = "Pin placed on the map";
+  $("locSub").textContent = report.lat.toFixed(5) + ", " + report.lng.toFixed(5);
+  $("pickSheet").classList.add("hidden");
+};
+
+/* Send */
+$("sendBtn").onclick = async () => {
+  const err = $("sendErr");
+  if (!report.animal) { Sound.error(); return err.textContent = "Pick which animal you saw."; }
+  if (!report.incident) { Sound.error(); return err.textContent = "Pick what’s happening."; }
+  if (report.lat === null) { Sound.error(); return err.textContent = "Add the location: turn on GPS or tap Change."; }
+  const btn = $("sendBtn"); btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Sending…';
+  Sound.send();
+  const fd = new FormData();
+  for (const k of ["lat", "lng", "animal", "incident", "photo", "confidence", "ai_mode"]) if (report[k] !== null && report[k] !== undefined) fd.append(k, report[k]);
+  try {
+    const res = await fetch("/api/reports", { method: "POST", body: fd });
+    if (!res.ok) { let m = "Failed"; try { m = (await res.json()).detail || m; } catch {} throw new Error(m); }
+    const r = await res.json();
+    const mine = store.get("ww_reports", []);
+    if (!mine.includes(r.id)) mine.unshift(r.id);
+    store.set("ww_reports", mine.slice(0, 50));
+    renderStatus({ id: r.id, animal: report.animal, incident: report.incident, urgency: r.urgency, agency_label: r.agency_label, status: r.status, tips: r.tips }, true);
+    show("sent", "in-up");
+    setTimeout(() => Sound.done(), 250);
+  } catch (e) {
+    Sound.error(); err.textContent = "Couldn’t send: " + e.message;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = 'Send report<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F6D77A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg>';
+  }
+};
+
+/* ---------- Status screen (just sent, or tracking) ---------- */
+function renderStatus(r, fresh) {
+  const a = ANIMALS[r.animal] || ANIMALS.other;
+  const idx = Math.max(0, STEPS.findIndex(s => s[0] === r.status));
+  $("sentId").textContent = "Report #" + r.id + (fresh ? " · sent" : "");
+  $("sentTitle").textContent = fresh ? "Got it. Help is being arranged."
+    : r.status === "resolved" ? "All sorted. Thank you!" : r.status === "in_progress" ? "Responders are on it." : "Help is being arranged.";
+  const u = $("sentUrg"); u.className = "badge u-" + r.urgency; u.textContent = (r.urgency || "").replace(/^./, c => c.toUpperCase()) + " urgency";
+  $("sentWhat").textContent = a.name + " · " + (INCIDENTS[r.incident] || r.incident);
+  $("sentAgency").textContent = r.agency_label || "";
+  $("timeline").innerHTML = STEPS.map((s, i) => {
+    const cls = i < idx || (i === idx && s[0] === "resolved") ? "done" : i === idx ? "now" : "";
+    let sub = s[2];
+    if (i === 0 && r.created_at) sub = new Date(r.created_at).toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+    return '<li class="' + cls + '"><div class="rail"><span class="dot" style="animation-delay:' + (i * 140 + 200) + 'ms"></span><span class="bar"></span></div><div class="txt"><b>' + esc(s[1]) + "</b><span>" + esc(sub) + "</span></div></li>";
+  }).join("");
+  const tips = (r.tips && r.tips.length ? r.tips : TIPS[r.animal] || TIPS.other).slice(0, 3);
+  $("sentTips").innerHTML = tips.map((t, i) => '<div class="tipcard" style="background:' + TIP_COLORS[i % 3] + '"><b>' + (i + 1) + "</b><span>" + esc(t) + "</span></div>").join("");
+  $("sentCall").classList.toggle("big", r.urgency === "high");
+}
+
+/* ---------- My reports ---------- */
+async function renderReports() {
+  const box = $("repList"), ids = store.get("ww_reports", []);
+  if (!ids.length) {
+    box.innerHTML = '<div class="card empty"><h2 style="font-weight:700;font-size:20px;margin-bottom:6px">No reports yet</h2><p class="muted" style="margin:0 0 14px;font-size:14px">Reports you send from this phone appear here.</p><button class="btn press" id="firstReport">Report an animal</button></div>';
+    $("firstReport").onclick = () => $("photoInput").click();
+    return;
+  }
+  box.innerHTML = ids.map(() => '<div class="rep" style="height:74px;opacity:.5"></div>').join("");
+  const rows = await Promise.all(ids.map(id => fetch("/api/reports/" + id).then(r => r.ok ? r.json() : null).catch(() => null)));
+  box.innerHTML = "";
+  rows.forEach((r, i) => {
+    if (!r) return;
+    const a = ANIMALS[r.animal] || ANIMALS.other;
+    const b = document.createElement("button");
+    b.className = "rep press"; b.style.setProperty("--i", i);
+    b.innerHTML = '<span class="sw" style="background:' + a.bg + '">#' + esc(r.id) + '</span>' +
+      '<span style="flex-grow:1;display:flex;flex-direction:column;gap:3px;min-width:0"><b style="font-size:15px">' + esc(a.name) + " · " + esc(INCIDENTS[r.incident] || r.incident) + '</b><span style="font-size:12px;color:var(--soft)">' +
+      esc(new Date(r.created_at).toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })) + "</span>" +
+      '<span class="pill st-' + esc(r.status) + '" style="align-self:flex-start">' + esc((STEPS.find(s => s[0] === r.status) || [0, r.status])[1]) + "</span></span>" +
+      '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5A6A60" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+    b.onclick = () => { renderStatus(r, false); show("sent", "in-right"); };
+    box.appendChild(b);
+  });
+  if (!box.children.length) box.innerHTML = '<div class="card empty"><p class="muted" style="margin:0">Couldn’t load your reports. Check your connection.</p></div>';
+  restagger($("s-reports"));
+}
+$("trackBtn").onclick = async () => {
+  const id = $("trackId").value.trim(), err = $("trackErr"); err.textContent = "";
+  if (!id) { Sound.error(); return err.textContent = "Enter your report number."; }
+  try {
+    const res = await fetch("/api/reports/" + encodeURIComponent(id));
+    if (!res.ok) throw 0;
+    const r = await res.json(); renderStatus(r, false); show("sent", "in-right");
+  } catch { Sound.error(); err.textContent = "No report found with that number."; }
+};
+
+/* ---------- Map ---------- */
+let map = null, layer = null, mapData = null, mapFilter = "all";
+async function openMap() {
+  if (!map) {
+    map = L.map("map").setView(here.lat !== null ? [here.lat, here.lng] : ELMINA, 14);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "&copy; OpenStreetMap" }).addTo(map);
+    layer = L.layerGroup().addTo(map);
+    const leg = $("legend");
+    const all = document.createElement("button"); all.className = "chip on"; all.textContent = "All"; all.dataset.k = "all"; leg.appendChild(all);
+    for (const [k, a] of Object.entries(ANIMALS)) {
+      const b = document.createElement("button"); b.className = "chip"; b.dataset.k = k;
+      b.innerHTML = '<i style="background:' + a.deep + '"></i>' + esc(a.name); leg.appendChild(b);
+    }
+    leg.onclick = e => { const b = e.target.closest("button"); if (!b) return; mapFilter = b.dataset.k; leg.querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b)); drawMap(); };
+  }
+  setTimeout(() => map.invalidateSize(), 80);
+  if (here.lat !== null && !map._youDot) map._youDot = L.circleMarker([here.lat, here.lng], { radius: 8, color: "#fff", weight: 3, fillColor: "#1D2B22", fillOpacity: 1 }).addTo(map).bindTooltip("You");
+  if (!mapData) {
+    try { const r = await fetch("/api/public/sightings?days=14"); mapData = r.ok ? await r.json() : []; } catch { mapData = []; }
+  }
+  drawMap();
+}
+function drawMap() {
+  layer.clearLayers();
+  const list = mapData.filter(s => mapFilter === "all" || s.animal === mapFilter);
+  list.forEach(s => {
+    const a = ANIMALS[s.animal] || ANIMALS.other;
+    L.circleMarker([s.lat, s.lng], { radius: 9, color: "#fff", weight: 2, fillColor: a.deep, fillOpacity: .9 })
+      .bindPopup("<b>" + esc(a.name) + "</b><br>" + esc(INCIDENTS[s.incident] || s.incident) + "<br>" + esc(s.day)).addTo(layer);
+  });
+  $("mapCount").textContent = list.length + (list.length === 1 ? " sighting shown." : " sightings shown.");
+}
+
+/* ---------- Tips ---------- */
+let tipAnimal = "monkey";
+fetch("/api/public/tips").then(r => r.ok ? r.json() : null).then(d => { if (d && d.tips) TIPS = d.tips; }).catch(() => {});
+function renderTips(k) {
+  tipAnimal = k;
+  const tabs = $("tipTabs");
+  if (!tabs.children.length) {
+    for (const [key, a] of Object.entries(ANIMALS)) {
+      const b = document.createElement("button"); b.className = "chip"; b.dataset.k = key;
+      b.innerHTML = '<i style="background:' + a.deep + '"></i>' + esc(a.name);
+      b.onclick = () => { renderTips(key); restagger($("s-tips")); };
+      tabs.appendChild(b);
+    }
+  }
+  tabs.querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.k === k));
+  const a = ANIMALS[k];
+  $("tipHero").style.background = a.bg;
+  $("tipMalay").textContent = a.malay; $("tipName").textContent = a.name; $("tipWho").textContent = a.who;
+  $("tipList").innerHTML = (TIPS[k] || []).map((t, i) => '<div class="tip-row" style="--i:' + i + '"><span class="n" style="background:' + a.bg + '">' + (i + 1) + '</span><span style="font-size:15px;line-height:1.45">' + esc(t) + "</span></div>").join("");
+}
+
+/* ---------- Install as an app (PWA) ---------- */
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
+const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+let deferredPrompt = null;
+window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); deferredPrompt = e; if (!standalone && !store.get("ww_install_off", false)) $("installBar").classList.remove("hidden"); });
+$("installBtn").onclick = async () => { if (!deferredPrompt) return; deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; $("installBar").classList.add("hidden"); };
+$("installClose").onclick = () => { $("installBar").classList.add("hidden"); store.set("ww_install_off", true); };
+if (/iphone|ipad|ipod/i.test(navigator.userAgent) && !standalone && !store.get("ww_install_off", false)) {
+  $("installHint").textContent = "Tap Share, then “Add to Home Screen”.";
+  $("installBtn").classList.add("hidden"); $("installBar").classList.remove("hidden");
+}
+
+/* ---------- Start ---------- */
+$("startBtn").onclick = () => { store.set("ww_seen", true); locate(); show("home", "in-up"); };
+if (store.get("ww_loc", false)) locate(ok => { if (ok && current === "home") renderNear(); });
+show(store.get("ww_seen", false) ? "home" : "welcome", "in-fade");
+</script>
+</body>
+</html>

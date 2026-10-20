@@ -336,3 +336,28 @@ def report_page():
 @app.get("/dashboard")
 def dashboard_page():
     return FileResponse(FRONTEND / "dashboard.html")
+
+
+# ---------- New resident app (Map and Tips use these two public endpoints) ----------
+
+@app.get("/app")
+def new_app_page():
+    return FileResponse(FRONTEND / "app.html")
+
+
+@app.get("/api/public/sightings")
+def public_sightings(days: int = 14):
+    """Recent sightings for the residents' map. Locations are rounded to about 100 m
+    and nothing personal is included (no photo, note or exact spot)."""
+    days = max(1, min(days, 60))
+    since = datetime.fromtimestamp(datetime.now().timestamp() - days * 86400).isoformat(timespec="seconds")
+    rows = query("SELECT lat, lng, animal, incident, created_at FROM reports WHERE created_at >= ? "
+                 "ORDER BY created_at DESC LIMIT 1500", (since,))
+    return [{"lat": round(r["lat"], 3), "lng": round(r["lng"], 3), "animal": r["animal"],
+             "incident": r["incident"], "day": r["created_at"][:10]} for r in rows]
+
+
+@app.get("/api/public/tips")
+def public_tips():
+    """Safety tips for every animal, so the app and the rules always say the same thing."""
+    return {"labels": rules.ANIMAL_LABELS, "tips": rules.TIPS}
