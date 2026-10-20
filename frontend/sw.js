@@ -1,8 +1,8 @@
 // Service worker: makes the resident app installable and opens it instantly.
 // Pages and app files are cached; reports (/api) always go to the server.
-const CACHE = "wildwatch-v1";
+const CACHE = "wildwatch-v2";
 const SHELL = [
-  "/report",
+  "/app",
   "/static/vendor/leaflet.css",
   "/static/vendor/leaflet.js",
   "/static/vendor/images/marker-icon.png",

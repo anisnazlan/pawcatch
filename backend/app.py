@@ -313,7 +313,7 @@ app.mount("/uploads", StaticFiles(directory=UPLOADS), name="uploads")
 
 @app.get("/")
 def home():
-    return RedirectResponse("/report")
+    return RedirectResponse("/app")
 
 
 @app.get("/manifest.webmanifest")
