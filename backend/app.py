@@ -330,6 +330,13 @@ def service_worker():
 
 @app.get("/report")
 def report_page():
+    # The old address now opens the new app, so old home-screen icons and links still work.
+    return RedirectResponse("/app")
+
+
+@app.get("/report-old")
+def old_report_page():
+    # The previous resident page, kept as a backup.
     return FileResponse(FRONTEND / "report.html")
 
 
