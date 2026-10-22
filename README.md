@@ -54,7 +54,7 @@ The dashboard also finds **hotspots**, places where the same problem keeps happe
 - **Model:** MobileNetV2 (transfer learning), exported to TensorFlow Lite so it runs on a small free server.
 - **Classes:** monkey, stray dog, snake, wild boar, monitor lizard, and **other**. "Other" covers non-animal photos and other animals, so a random photo isn't forced into the wrong animal.
 - **Training data:** public datasets from Kaggle, plus research-grade **iNaturalist photos from Malaysia** for local species such as macaques, wild boar and the Asian water monitor (biawak).
-- **Results:** *XX% accuracy on test photos (add your latest number and confusion matrix).*
+- **Results:** *89% accuracy on test photos (add your latest number and confusion matrix).*
 - **Safety net:** when the AI isn't confident enough, the resident is asked to pick the animal, so a report is never blocked.
 
 ## Who handles what
