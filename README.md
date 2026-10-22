@@ -8,8 +8,8 @@ Sime Darby Property University Hackathon 2026 · Township of Tomorrow · Planet 
 | | Link |
 |---|---|
 | 📱 **Resident app** | https://wildwatch-elmina.onrender.com/app (best on a phone; you can add it to your home screen) |
-| 🖥️ **Management dashboard** | https://wildwatch-elmina.onrender.com/dashboard (login key is in our submission form) |
-| 🎬 **Demo video** | *add your video link here* |
+| 🖥️ **Management dashboard** | https://wildwatch-elmina.onrender.com/dashboard (login key is "elmina2026") |
+| 
 
 ---
 
