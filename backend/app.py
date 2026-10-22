@@ -64,7 +64,7 @@ def show_links():
         return
     port = os.getenv("PORT", "8000")
     print(f"\n  WildWatch is running. Ctrl + click a link to open it:\n"
-          f"    Resident app: http://localhost:{port}/report\n"
+          f"    Resident app: http://localhost:{port}/app\n"
           f"    Dashboard:    http://localhost:{port}/dashboard\n", flush=True)
 
 
@@ -328,16 +328,16 @@ def service_worker():
                         headers={"Cache-Control": "no-cache"})
 
 
-@app.get("/report")
-def report_page():
+#@app.get("/report")
+#def report_page():
     # The old address now opens the new app, so old home-screen icons and links still work.
-    return RedirectResponse("/app")
+ #   return RedirectResponse("/app")
 
 
-@app.get("/report-old")
-def old_report_page():
+#@app.get("/report-old")
+#def old_report_page():
     # The previous resident page, kept as a backup.
-    return FileResponse(FRONTEND / "report.html")
+    #return FileResponse(FRONTEND / "report.html")
 
 
 @app.get("/dashboard")
@@ -345,10 +345,10 @@ def dashboard_page():
     return FileResponse(FRONTEND / "admin.html")
 
 
-@app.get("/dashboard-old")
-def old_dashboard_page():
+#@app.get("/dashboard-old")
+#def old_dashboard_page():
     # The previous dashboard, kept as a backup.
-    return FileResponse(FRONTEND / "dashboard.html")
+ #   return FileResponse(FRONTEND / "dashboard.html")
 
 
 # ---------- New resident app (Map and Tips use these two public endpoints) ----------

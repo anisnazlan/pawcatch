@@ -28,7 +28,7 @@
       "justMyCode": true,
       "serverReadyAction": {
         "pattern": "Uvicorn running on (https?://\\S+)",
-        "uriFormat": "%s/report",
+        "uriFormat": "%s/app",
         "action": "openExternally"
       }
     }
