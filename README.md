@@ -1,5 +1,9 @@
 # WildWatch Elmina
 
+## 🔗 Try it live
+- **Resident app:** https://wildwatch-elmina.onrender.com/app (open on your phone; you can add it to your home screen)
+- **Management dashboard:** https://wildwatch-elmina.onrender.com/dashboard (login key is "elmina2026")
+
 Prototype for the Sime Darby Property University Hackathon 2026 (Township of Tomorrow, Planet track).
 
 Residents report animal sightings (monkeys, stray dogs, snakes, wild boar, monitor lizards) from their phone. AI identifies the animal, the system routes the report to the right party (PERHILITAN, MBSA or township management) and gives safety tips. Township management sees every report on a hotspot dashboard and gets suggested preventive actions.
